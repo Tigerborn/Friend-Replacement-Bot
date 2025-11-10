@@ -19,9 +19,11 @@ bot = commands.Bot(command_prefix='/', intents=intents)
 @bot.event
 async def on_ready():
     guild_id = 1025497829646549092
+    guild_id_two = 1086077024373850243
     try:
         #Testing the sync
         guild = discord.Object(id=guild_id)
+        guild_two = discord.Object(id=guild_id_two)
         await bot.tree.sync()
         print("Logged in successfully as", bot.user.name, "🤯😎")
     except Exception as e:
@@ -69,14 +71,14 @@ async def weather(
         result = Weather.get_current_weather_data(query)
         await interaction.response.send_message(result)
 
-
+        #Sends alerts if the alert field is filled
         if alert is not None:
             alerts = Weather.Check_Emergency_Status(query)
-            if alerts.len() >= 1:
+            if len(alerts) >= 1:
                 for alert in alerts:
-                    interaction.followup.send(alert)
-            if alerts.len() == 0:
-                interaction.followup.send("There are no active alerts in your area 😱😎")
+                    await interaction.followup.send(alert)
+            if len(alerts) == 0:
+                await interaction.followup.send("There are no active alerts in your area 😱😎")
 
 
 
@@ -118,14 +120,43 @@ async def weather_dump(
 
     await interaction.response.send_message(result)
 
+    # Sends alerts if the alert field is filled
     if alert is not None:
         alerts = Weather.Check_Emergency_Status(query)
-        if alerts.len() >= 1:
+        if len(alerts) >= 1:
             for alert in alerts:
-                interaction.followup.send(alert)
-        if alerts.len() == 0:
-            interaction.followup.send("There are no active alerts in your area 😱😎")
+                await interaction.followup.send(alert)
+        if len(alerts) == 0:
+            await interaction.followup.send("There are no active alerts in your area 😱😎")
+
+#SLASH: /map
+@bot.tree.command(name="map", description = "Returns a desired map")
+@app_commands.describe(map_type = "Type of map. Options include Tmp2m (Temperature at 2m), Precip (Precipitation), Pressure, and Wind Speed",
+                       date = "Date in format of yyyymmdd (Example: For November 1st, 2024 the input would be 20241101. Can only be 3 days or less of the current date",
+                       hour = "UTC hour in 24 format (Example: 1 PM would be 13)",
+                       zoom = "Zoom level",
+                       x = "X coordinate",
+                       y = "Y coordinate"
+                       )
+async def map(
+        interaction: discord.Interaction,
+        map_type: str = None,
+        date: str = None,
+        hour: str = None,
+        zoom: int = None,
+        x: int = None,
+        y: int = None,
+):
+    if map_type != "Tmp2m" or map_type != "Precip" or map_type != "Pressure" or map_type != "Wind Speed": #If the map type is wrong tell them
+        await interaction.response.send_message("Please ensure that Map Type is either of these four options (case sensitive): Tmp2m, Precip, Pressure, or Wind Speed")
+        return
+    if map_type is None or date is None or hour is None or zoom is None or x is None or y is None:
+        await interaction.response.send_message("One or more field was left empty💀. Please fill out all fields and try again.")
+        return
+    url = Weather.Display_Map(map_type, date, hour, zoom, x, y)
+    await interaction.response.send_message(url)
 
 
+#SLASH: /forecast
 
 bot.run(TOKEN,log_handler=handler,log_level=logging.DEBUG)

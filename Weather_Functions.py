@@ -1,4 +1,6 @@
 import os
+from idlelib import query
+
 import requests
 from dotenv import load_dotenv
 import json
@@ -71,7 +73,7 @@ def get_current_weather_data_extend(query):
                    f"Windchill: {data['current']['windchill_f']}°F ({data['current']['windchill_c']}°C)\n"
                    f"Heat Index: {data['current']['heatindex_f']}°F ({data['current']['heatindex_c']}°C)\n"
                    f"Dew point: {data['current']['dewpoint_f']}°F ({data['current']['dewpoint_c']}°C)\n"
-                   f"Pressure: {data['current']['pressure_mb']} mb ({data['current']['pressure_in']} in)\n"
+                   f"Pressure: {data['current']['pressure_in']} in ({data['current']['pressure_mb']} mb)\n"
                    f"Wind Speed: {data['current']['wind_mph']} mph ({data['current']['wind_kph']} kph) {data['current']['wind_dir']}\n"
                    f"Wind Gust: {data['current']['gust_mph']} mph ({data['current']['gust_kph']} kph)\n"
                    f"Cloud Cover: {data['current']['cloud']}%\n"
@@ -104,15 +106,18 @@ def Check_Emergency_Status(query):
         instruction = alert.get("instruction")
 
         message = (
-            f"⚠️{event} - {severity}⚠️\n"
-            f"{headline}\n"
-            f"Affected areas: {areas}\n"
-            f"From: {date_start} to: {date_end}\n"
-            f"{desc}"
+            f"⚠️{event} - {severity}⚠️\n \n"
+            f"{headline}\n \n"
+            f"Affected areas: {areas}\n \n"
+            f"From: {date_start} to: {date_end}\n \n"
+            f"{desc} \n"
             f"{instruction}"
         )
         Messages.append(message)
     return Messages
 
+def Display_Map(query,date,time,zoom,x,y):
+    url = f"https://weathermaps.weatherapi.com/{query}/tiles/{date}{time}/{zoom}/{x}/{y}.png"
+    return url
 
 
