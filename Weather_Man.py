@@ -1,25 +1,106 @@
 import discord
+from discord import app_commands
 import os
+import logging
 from dotenv import load_dotenv
 from discord.ext import commands
+import Weather_Functions as Weather
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 
 intents = discord.Intents.default()
+intents.members = True
+intents.messages = True
 intents.message_content = True
-
-bot = commands.Bot(command_prefix="!", intents=intents)
+intents.reactions = True
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+bot = commands.Bot(command_prefix='/', intents=intents)
+@bot.event
+async def on_ready():
+    guild_id = 1025497829646549092
+    try:
+        #Testing the sync
+        guild = discord.Object(id=guild_id)
+        await bot.tree.sync()
+        print("Logged in as ", bot.user.name, bot.user.id)
+    except Exception as e:
+        print(e)
 
 @bot.event
+async def on_member_join(member: discord.Member):
+    channel = member.guild.system_channel
+    if channel is not None:
+        await channel.send(f"Hello {member.mention}!")
 
-async def on_ready():
-    print (f"Logged in as {bot.user} (ID: {bot.user.id})")
-    print ("------")
-    
-@bot.command()
 
-async def ping(ctx):
-    await ctx.send("pong!")
-    
-bot.run(TOKEN)
+#SLASH: /weather
+
+@bot.tree.command(name = "weather", description = "Get weather by city, zip, or coordinates")
+@app_commands.describe(city = "City name (e.g., Houston)", zip = "ZIP code (e.g., 77339)", lat = "Latitude (e.g., 32.7781)", lon = "Longitude (e.g., -118.7781)")
+async def weather(
+        interaction: discord.Interaction,
+        city: str = None,
+        zip: str = None,
+        lat: float = None,
+        lon: float = None
+):
+
+        # --- Validation ---
+        provided = [x for x in [city, zip, (lat and lon)] if x]
+
+        if len(provided) == 0:
+            await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.")
+            return
+        if len(provided) > 1:
+            await interaction.response.send_message("Please provide only one type of location input (city, zip, or lat+lon).")
+            return
+
+        # --- Build query ---
+        if city:
+            query = city
+        elif zip:
+            query = zip
+        else:
+            query = f"{lat},{lon}"
+
+        result = Weather.get_current_weather_data(query)
+        await interaction.response.send_message(result)
+
+#SLASH: /weather_dump
+@bot.tree.command(name = "weather_dump", description = "Get weather dump by city, zip, or coordinates")
+@app_commands.describe(city="City name (e.g., Houston)", zip="ZIP code (e.g., 77339)", lat="Latitude (e.g., 32.7781)",
+                       lon="Longitude (e.g., -118.7781)")
+async def weather_dump(
+        interaction: discord.Interaction,
+        city: str = None,
+        zip: str = None,
+        lat: float = None,
+        lon: float = None
+):
+    # --- Validation ---
+    provided = [x for x in [city, zip, (lat and lon)] if x]
+
+    if len(provided) == 0:
+        await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.")
+        return
+    if len(provided) > 1:
+        await interaction.response.send_message(
+            "Please provide only one type of location input (city, zip, or lat+lon).")
+        return
+
+    # --- Build query ---
+    if city:
+        query = city
+    elif zip:
+        query = zip
+    else:
+        query = f"{lat},{lon}"
+
+    result = Weather.get_current_weather_data_extend(query)
+
+    await interaction.response.send_message(result)
+
+
+
+bot.run(TOKEN,log_handler=handler,log_level=logging.DEBUG)
