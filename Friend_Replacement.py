@@ -23,7 +23,7 @@ async def on_ready():
         #Testing the sync
         guild = discord.Object(id=guild_id)
         await bot.tree.sync()
-        print("Logged in as ", bot.user.name, bot.user.id)
+        print("Logged in successfully as", bot.user.name, "🤯😎")
     except Exception as e:
         print(e)
 
@@ -36,14 +36,16 @@ async def on_member_join(member: discord.Member):
 
 #SLASH: /weather
 
-@bot.tree.command(name = "weather", description = "Get weather by city, zip, or coordinates")
-@app_commands.describe(city = "City name (e.g., Houston)", zip = "ZIP code (e.g., 77339)", lat = "Latitude (e.g., 32.7781)", lon = "Longitude (e.g., -118.7781)")
+@bot.tree.command(name = "weather", description = "Get weather by city, zip, or coordinates. Will give alerts if prompted")
+@app_commands.describe(city = "City name (e.g., Houston)", zip = "ZIP code (e.g., 77339)", lat = "Latitude (e.g., 32.7781)",
+                       lon = "Longitude (e.g., -118.7781)", alert = "Shows available alerts for the area based on any input. Leave field empty to not trigger")
 async def weather(
         interaction: discord.Interaction,
         city: str = None,
         zip: str = None,
         lat: float = None,
-        lon: float = None
+        lon: float = None,
+        alert: str = None,
 ):
 
         # --- Validation ---
@@ -67,16 +69,31 @@ async def weather(
         result = Weather.get_current_weather_data(query)
         await interaction.response.send_message(result)
 
+
+        if alert is not None:
+            alerts = Weather.Check_Emergency_Status(query)
+            if alerts.len() >= 1:
+                for alert in alerts:
+                    interaction.followup.send(alert)
+            if alerts.len() == 0:
+                interaction.followup.send("There are no active alerts in your area 😱😎")
+
+
+
+
+
+
 #SLASH: /weather_dump
-@bot.tree.command(name = "weather_dump", description = "Get weather dump by city, zip, or coordinates")
+@bot.tree.command(name = "weather_dump", description = "Get weather dump by city, zip, or coordinates. Will give alerts if prompted")
 @app_commands.describe(city="City name (e.g., Houston)", zip="ZIP code (e.g., 77339)", lat="Latitude (e.g., 32.7781)",
-                       lon="Longitude (e.g., -118.7781)")
+                       lon="Longitude (e.g., -118.7781)", alert = "Shows available alerts for the area based on any input. Leave field empty to not trigger")
 async def weather_dump(
         interaction: discord.Interaction,
         city: str = None,
         zip: str = None,
         lat: float = None,
-        lon: float = None
+        lon: float = None,
+        alert: str = None
 ):
     # --- Validation ---
     provided = [x for x in [city, zip, (lat and lon)] if x]
@@ -100,6 +117,14 @@ async def weather_dump(
     result = Weather.get_current_weather_data_extend(query)
 
     await interaction.response.send_message(result)
+
+    if alert is not None:
+        alerts = Weather.Check_Emergency_Status(query)
+        if alerts.len() >= 1:
+            for alert in alerts:
+                interaction.followup.send(alert)
+        if alerts.len() == 0:
+            interaction.followup.send("There are no active alerts in your area 😱😎")
 
 
 
