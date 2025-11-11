@@ -131,7 +131,7 @@ async def weather_dump(
 
 #SLASH: /map
 @bot.tree.command(name="map", description = "Returns a desired map")
-@app_commands.describe(map_type = "Type of map. Options include Tmp2m (Temperature at 2m), Precip (Precipitation), Pressure, and Wind Speed",
+@app_commands.describe(map_type = "Type of map. Options include tmp2m (Temperature at 2m), precip (Precipitation), pressure, and wind",
                        date = "Date in format of yyyymmdd (Example: For November 1st, 2024 the input would be 20241101. Can only be 3 days or less of the current date",
                        hour = "UTC hour in 24 format (Example: 1 PM would be 13)",
                        zoom = "Zoom level",
@@ -147,8 +147,8 @@ async def map(
         x: int = None,
         y: int = None,
 ):
-    if map_type != "Tmp2m" or map_type != "Precip" or map_type != "Pressure" or map_type != "Wind Speed": #If the map type is wrong tell them
-        await interaction.response.send_message("Please ensure that Map Type is either of these four options (case sensitive): Tmp2m, Precip, Pressure, or Wind Speed")
+    if map_type != "tmp2m" and map_type != "precip" and map_type != "pressure" and map_type != "wind": #If the map type is wrong tell them
+        await interaction.response.send_message("Please ensure that Map Type is either of these four options (case sensitive): tmp2m, precip, pressure, or wind")
         return
     if map_type is None or date is None or hour is None or zoom is None or x is None or y is None:
         await interaction.response.send_message("One or more field was left empty💀. Please fill out all fields and try again.")
