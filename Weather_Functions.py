@@ -1,8 +1,8 @@
 import os
 import requests
 from dotenv import load_dotenv
+import math
 import json
-
 load_dotenv()
 
 
@@ -23,6 +23,20 @@ def Time_Format_Fix(Time):
         time_start -= 12
     date = f"{month}/{day}/{year} at {time_start}:{time_end} {status}"
     return date
+
+def latlon_to_tile(lat: float, lon: float, zoom: int):
+    """
+    Converts latitude & longitude into XYZ tile coordinates for Web Mercator.
+    Returns (x, y) integers valid for WeatherAPI map URLs.
+    """
+    # Make sure values are in range
+    lat = max(min(lat, 85.05112878), -85.05112878)  # Web Mercator limit
+    lon = ((lon + 180) % 360) - 180  # wrap lon to [-180,180]
+
+    n = 2.0 ** zoom
+    x = int((lon + 180.0) / 360.0 * n)
+    y = int((1.0 - math.log(math.tan(math.radians(lat)) + (1 / math.cos(math.radians(lat)))) / math.pi) / 2.0 * n)
+    return x, y
 
 
 def get_current_weather_data(query):
@@ -114,8 +128,14 @@ def Check_Emergency_Status(query):
         Messages.append(message)
     return Messages
 
-def Display_Map(query,date,time,zoom,x,y):
-    url = f"https://weathermaps.weatherapi.com/{query}/tiles/{date}{time}/{zoom}/{x}/{y}.png"
+def Display_Map(map_type,date,time,zoom,lat,long):
+    if len(time) == 1: #Ensures if the hour is one digit it formats it as two.
+        time = "0" + time
+
+    #Convert lat and long to x,y
+    x,y = latlon_to_tile(lat,long,zoom)
+    url = f"https://weathermaps.weatherapi.com/{map_type}/tiles/{date}{time}/{zoom}/{x}/{y}.png"
     return url
 
 
+print(Display_Map("precip","20251110","8",0,0,0))
