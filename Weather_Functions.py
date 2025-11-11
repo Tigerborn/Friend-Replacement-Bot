@@ -1,6 +1,4 @@
 import os
-from idlelib import query
-
 import requests
 from dotenv import load_dotenv
 import json
