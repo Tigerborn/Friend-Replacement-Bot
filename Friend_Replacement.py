@@ -14,7 +14,7 @@ import Database_Helpers as db
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
-OwnerID = os.getenv("OWNER_ID")
+OwnerID = os.getenv("OWNER_ID", "0")
 
 class MyBot(commands.Bot):
     #Creating setup hook
@@ -112,11 +112,11 @@ async def db_view(interaction: discord.Interaction):
     if interaction.user.id != OwnerID:
         await interaction.response.send_message("You can't use this command.", ephemeral = True)
         return
-
-    database = db.show_databases()
-    table = db.show_tables()
+    interaction.response.defer()
+    database = await db.show_databases()
+    table = await db.show_tables()
     full = database + table
-    await interaction.response.send_message(full, ephemeral = True)
+    await interaction.followup.send(full, ephemeral = True)
 
 #SLASH: /weather
 
