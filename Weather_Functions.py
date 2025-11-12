@@ -24,6 +24,16 @@ def Time_Format_Fix(Time):
     date = f"{month}/{day}/{year} at {time_start}:{time_end} {status}"
     return date
 
+def string_condenser(string: str):
+    # Ensures the intended string is one char.
+    if len(string) > 1:
+        for x in string:
+            if x.isalpha():
+                string = x
+                break
+    return string
+
+
 def latlon_to_tile(lat: float, lon: float, zoom: int):
     """
     Converts latitude & longitude into XYZ tile coordinates for Web Mercator.

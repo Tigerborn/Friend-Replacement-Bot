@@ -40,7 +40,7 @@ async def on_member_join(member: discord.Member):
 
 @bot.tree.command(name = "weather", description = "Dump relevant current weather info for desired location. Can give alerts if prompted")
 @app_commands.describe(city = "City name (e.g., Houston)", zip = "ZIP code (e.g., 77339)", lat = "Latitude (e.g., 32.7781)",
-                       lon = "Longitude (e.g., -118.7781)", alert = "Shows available alerts for the area based on any input. Leave field empty to not trigger", dump = "Gives all weather info instead of relevant info. Type Y to enable this feature.")
+                       lon = "Longitude (e.g., -118.7781)", alert = "Shows available alerts. Type Y to enable", dump = "Give all weather info instead of relevant info. Type Y to enable.")
 async def weather(
         interaction: discord.Interaction,
         city: str = None,
@@ -53,12 +53,8 @@ async def weather(
 
         # --- Validation ---
         provided = [x for x in [city, zip, (lat and lon)] if x]
-
-        if len(dump) > 1: #Ensures that dump is always the first alphanumeric character in input.
-            for x in dump:
-                if x.isalpha():
-                    dump = x
-                    break
+        dump = Weather.string_condenser(dump)
+        alert = Weather.string_condenser(alert)
 
         if len(provided) == 0:
             await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.")
@@ -76,8 +72,8 @@ async def weather(
             query = f"{lat},{lon}"
 
 
-        #Sends alerts if the alert field is filled
-        if alert is not None:
+        #Sends alerts if enabled
+        if alert == "Y":
             alerts = Weather.emergency_status(query)
             if len(alerts) >= 1:
                 for alert in alerts:
@@ -120,7 +116,8 @@ async def map(
 @bot.tree.command(name="forecast", description = "The hourly forecast for the desired day")
 @app_commands.describe(city="City name (e.g., Houston)", zip="ZIP code (e.g., 77339)", lat="Latitude (e.g., 32.7781)",
                        lon="Longitude (e.g., -118.7781)", alert = "Shows available alerts for the area based on any input. Leave field empty to not trigger",
-                       day="The day you wish to view forecast for, up to 5 days from current day", hourly = "Shows the hourly forecast. Type Y to enable.", from_current = "Shows the forecast for each day until the day inputted. Type Y to enable")
+                       day="The day you wish to view forecast for, up to 5 days from current day", hourly = "Shows the hourly forecast. Type Y to enable.",
+                       from_current = "Shows the forecast for each day until the day inputted. Type Y to enable", dump = "Give all forcast info instead of relevant info. Type Y to enable.")
 async def forecast(interaction: discord.Interaction,
                    city: str = None,
                    zip: str = None,
@@ -129,10 +126,15 @@ async def forecast(interaction: discord.Interaction,
                    alert: str = None,
                    day: str = None,
                    hourly: str = None,
-                   from_current: str = None):
+                   from_current: str = None,
+                   dump: str = None):
 
     # --- Validation ---
     provided = [x for x in [city, zip, (lat and lon)] if x]
+    dump = Weather.string_condenser(dump)
+    alert = Weather.string_condenser(alert)
+    hourly = Weather.string_condenser(hourly)
+    from_current = Weather.string_condenser(from_current)
 
     if len(provided) == 0:
         await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.")
@@ -152,9 +154,9 @@ async def forecast(interaction: discord.Interaction,
 
 
 
-    # Sends alerts if the alert field is filled
-    if alert is not None:
-        alerts = Weather.Check_Emergency_Status(query)
+    # Sends alerts if enabled
+    if alert == "Y":
+        alerts = Weather.emergency_status(query)
         if len(alerts) >= 1:
             for alert in alerts:
                 await interaction.followup.send(alert)
