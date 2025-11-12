@@ -69,6 +69,9 @@ def date_check(date):
             return True
     return is_proper
 
+def map_date(date):
+    return f"{date[6:]}{date[0:2]}{date[3:5]}"
+
 def days_between(desired_date: str):
     #Gets the number of days between desired date and current date
     current_date = get_date()
@@ -146,6 +149,7 @@ class WeatherClient:
                            f"Cloud Cover: {data['current']['cloud']}%\n"
                            f"UV Index: {data['current']['uv']}\n"
                            )
+            message += f"-------------------------------------------------------------\n"
             if alert == "Y":
                 message += await self.emergency_status(query)
         return message
@@ -315,4 +319,4 @@ async def main():
         )
         print(forecast)
 
-#asyncio.run(main())
+

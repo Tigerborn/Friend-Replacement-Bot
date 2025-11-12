@@ -1,5 +1,6 @@
 #Main bot file
 import discord
+from typing import Literal
 import Gamblers_Den as Gambling
 from discord import app_commands
 import os
@@ -13,12 +14,17 @@ import aiohttp
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 
-async def get_weather_client(bot):
-    # Create once; reuse later
-    if getattr(bot, "weather_client", None) is None:
-        bot.aiohttp_session = aiohttp.ClientSession()
-        bot.weather_client = Weather.WeatherClient(bot.aiohttp_session)
-    return bot.weather_client
+
+class MyBot(commands.Bot):
+    #Creating setup hook
+    async def setup_hook(self):
+        for gid in (1025497829646549092, 1086077024373850243):
+            await self.tree.sync(guild=discord.Object(id=gid))
+        await self.tree.sync()
+        # Optionally warm up shared clients here:
+        self.aiohttp_session = aiohttp.ClientSession()
+        self.weather_client = Weather.WeatherClient(self.aiohttp_session)
+
 
 intents = discord.Intents.default()
 intents.members = True
@@ -26,34 +32,25 @@ intents.messages = True
 intents.message_content = True
 intents.reactions = True
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-bot = commands.Bot(command_prefix= "/", intents = intents)
+bot = MyBot(command_prefix= "/", intents = intents)
 
 #Weather client
 
-
+_original_close = bot.close
+async def _close():
+    if getattr(bot, "aiohttp_session", None) and not bot.aiohttp_session.closed:
+        await bot.aiohttp_session.close()
+    await _original_close()
+bot.close = _close
 
 @bot.event
 async def on_ready():
-    try:
-        #Testing the sync
-        for gid in (1025497829646549092, 1086077024373850243):
-            await bot.tree.sync(guild=discord.Object(id=gid))
-        await bot.tree.sync()
-        print("Logged in successfully as", bot.user.name, "🤯😎")
-    except Exception as e:
-        print(e)
-
+    print("Logged in successfully as", bot.user.name, "🤯😎")
 @bot.event
 async def on_member_join(member: discord.Member):
     channel = member.guild.system_channel
     if channel is not None:
         await channel.send(f"Hello {member.mention}!")
-
-#Shutdown
-@bot.event
-async def on_shutdown():
-    if bot.weather_client:
-        await bot.weather_client.session.close()
 
 async def send_chunked(interaction: discord.Interaction, content: str):
     #Sends outputs greater than 2000 character in chunks
@@ -83,6 +80,26 @@ async def send_chunked(interaction: discord.Interaction, content: str):
         for c in chunks:
             await interaction.followup.send(c)
 
+#Cleaning up Validation with helper
+
+def _location_params(city, zip_code, lat, lon):
+    provided = 0
+    if city is not None: provided += 1
+    if zip_code is not None: provided += 1
+    if (lat is not None) and (lon is not None): provided += 1
+    if (lat is not None) ^ (lon is not None):
+        return provided, "Please provide both latitude **and** longitude."
+    return provided, None
+
+#Convert True/False to Y/N
+
+def bool_to_yn(val):
+    if val is True:
+        return "Y"
+    if val is False:
+        return "N"
+    return val  # leaves strings like "Y"/"N" untouched
+
 #SLASH: /weather
 
 @bot.tree.command(name = "weather", description = "Dump relevant current weather info for desired location. Can give alerts if prompted")
@@ -94,23 +111,25 @@ async def weather(
         zip: str = None,
         lat: float = None,
         lon: float = None,
-        alert: str = "N",
-        dump: str = "N"
+        alert: bool = False,
+        dump: bool = False
 ):
 
         # --- Validation ---
-        client = await get_weather_client(bot)
-        provided = [x for x in [city, zip, (lat and lon)] if x]
-        dump = Weather.string_condenser(dump)
-        dump = dump.upper()
-        alert = Weather.string_condenser(alert)
-        alert = alert.upper()
+        client = bot.weather_client
+        dump = bool_to_yn(dump)
+        alert = bool_to_yn(alert)
 
-        if len(provided) == 0:
+        count, err = _location_params(city, zip, lat, lon)
+        if err:
+            await interaction.response.send_message(err)
+            return
+        if count == 0:
             await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.")
             return
-        if len(provided) > 1:
-            await interaction.response.send_message("Please provide only one type of location input (city, zip, or lat+lon).")
+        if count > 1:
+            await interaction.response.send_message(
+                "Please provide only one type of location input (city, zip, or lat+lon).")
             return
 
         # --- Build query ---
@@ -139,24 +158,29 @@ async def weather(
                        hour = "UTC hour in 24 format (Example: 1 PM would be 13)",
                        zoom = "Zoom level: Each Zoom corresponds to different depths of info. 0 - Whole world, 1 - Very zoomed out, 5 - Continental scale, 8 - Regional, and 10 - City-level",
                        lat = "Latitude coordinate",
-                       long = "Longitude coordinate"
+                       lon = "Longitude coordinate"
                        )
 async def map(
         interaction: discord.Interaction,
-        map_type: str = None,
-        date: str = None,
-        hour: str = None,
-        zoom: int = None,
-        lat: float = None,
-        long: float = None,
+        map_type: str = "precip",
+        date: str = Weather.map_date(Weather.get_future_date(-1)),
+        hour: str = "1",
+        zoom: int = 0,
+        lat: float = 1.0,
+        lon: float = 1.0,
 ):
-    if map_type != "tmp2m" and map_type != "precip" and map_type != "pressure" and map_type != "wind": #If the map type is wrong tell them
-        await interaction.response.send_message("Please ensure that Map Type is either of these four options (case sensitive): tmp2m, precip, pressure, or wind")
+    VALID_MAPS = {"tmp2m", "precip", "pressure", "wind"}
+    if map_type not in VALID_MAPS:
+        await interaction.response.send_message(f"Map type must be one of: {', '.join(sorted(VALID_MAPS))}")
         return
-    if map_type is None or date is None or hour is None or zoom is None or lat is None or long is None:
-        await interaction.response.send_message("One or more field was left empty💀. Please fill out all fields and try again.")
+    try:
+        hour_int = int(hour)
+        if not (0 <= hour_int <= 23):
+            raise ValueError
+    except:
+        await interaction.response.send_message("`hour` must be an integer from 0–23 (UTC).")
         return
-    url = Weather.map_link(map_type, date, hour, zoom, lat, long)
+    url = Weather.map_link(map_type, date, hour, zoom, lat, lon)
     await interaction.response.send_message(url)
 
 
@@ -175,25 +199,20 @@ async def forecast(interaction: discord.Interaction,
                    lat: float = None,
                    lon: float = None,
                    date: str = Weather.get_date(),
-                   daily: str = "Y",
-                   hourly: str = "N",
-                   from_current: str = "N",
-                   alert: str = "N",
-                   dump: str = "N"):
+                   daily: bool = True,
+                   hourly: bool = False,
+                   from_current: bool = False,
+                   alert: bool = False,
+                   dump: bool = False):
 
     # --- Validation ---
-    client = await get_weather_client(bot)
-    provided = [x for x in [city, zip, (lat and lon)] if x]
-    dump = Weather.string_condenser(dump)
-    dump = dump.upper()
-    alert = Weather.string_condenser(alert)
-    alert = alert.upper()
-    hourly = Weather.string_condenser(hourly)
-    hourly = hourly.upper()
-    from_current = Weather.string_condenser(from_current)
-    from_current = from_current.upper()
-    daily = Weather.string_condenser(daily)
-    daily = daily.upper()
+    client = bot.weather_client
+    dump = bool_to_yn(dump)
+    alert = bool_to_yn(alert)
+    hourly = bool_to_yn(hourly)
+    from_current = bool_to_yn(from_current)
+    daily = bool_to_yn(daily)
+
     if hourly == "Y":
         daily = "N"
         alert = "N"
@@ -201,16 +220,25 @@ async def forecast(interaction: discord.Interaction,
 
     is_proper = Weather.date_check(date)
     if not is_proper:
-        await interaction.response.send_message(f"Date was not in proper format (MM/DD/YYYY). Please ensure it is between {Weather.get_date()} - {Weather.get_future_date(4)}")
-
-    if Weather.days_between(date) > 5:
-        await interaction.response.send_message(f"Please select a date between {Weather.get_date()} - {Weather.get_future_date(4)}")
+        await interaction.response.send_message(
+            f"Date was not in proper format (MM/DD/YYYY). Please ensure it is between {Weather.get_date()} - {Weather.get_future_date(4)}"
+        )
         return
 
-    if len(provided) == 0:
+    if Weather.days_between(date) > 4:
+        await interaction.response.send_message(
+            f"Please select a date between {Weather.get_date()} - {Weather.get_future_date(4)}"
+        )
+        return
+
+    count, err = _location_params(city, zip, lat, lon)
+    if err:
+        await interaction.response.send_message(err)
+        return
+    if count == 0:
         await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.")
         return
-    if len(provided) > 1:
+    if count > 1:
         await interaction.response.send_message(
             "Please provide only one type of location input (city, zip, or lat+lon).")
         return
