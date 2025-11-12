@@ -40,15 +40,15 @@ async def on_member_join(member: discord.Member):
 
 @bot.tree.command(name = "weather", description = "Dump relevant current weather info for desired location. Can give alerts if prompted")
 @app_commands.describe(city = "City name (e.g., Houston)", zip = "ZIP code (e.g., 77339)", lat = "Latitude (e.g., 32.7781)",
-                       lon = "Longitude (e.g., -118.7781)", alert = "Shows available alerts. Type Y to enable", dump = "Give all weather info instead of relevant info. Type Y to enable.")
+                       lon = "Longitude (e.g., -118.7781)", alert = "Shows available alerts. Enter Y to enable", dump = "Give all weather info instead of relevant info. Enter Y to enable.")
 async def weather(
         interaction: discord.Interaction,
         city: str = None,
         zip: str = None,
         lat: float = None,
         lon: float = None,
-        alert: str = None,
-        dump: str = None
+        alert: str = "N",
+        dump: str = "N"
 ):
 
         # --- Validation ---
@@ -70,17 +70,7 @@ async def weather(
             query = zip
         else:
             query = f"{lat},{lon}"
-
-
-        #Sends alerts if enabled
-        if alert == "Y":
-            alerts = Weather.emergency_status(query)
-            if len(alerts) >= 1:
-                for alert in alerts:
-                    await interaction.followup.send(alert)
-            if len(alerts) == 0:
-                await interaction.followup.send("There are no active alerts in your area 😱😎")
-
+        Weather.weather(query, alert, dump)
 
 
 #SLASH: /map
@@ -115,19 +105,20 @@ async def map(
 
 @bot.tree.command(name="forecast", description = "The hourly forecast for the desired day")
 @app_commands.describe(city="City name (e.g., Houston)", zip="ZIP code (e.g., 77339)", lat="Latitude (e.g., 32.7781)",
-                       lon="Longitude (e.g., -118.7781)", alert = "Shows available alerts for the area based on any input. Leave field empty to not trigger",
-                       day="The day you wish to view forecast for, up to 5 days from current day", hourly = "Shows the hourly forecast. Type Y to enable.",
-                       from_current = "Shows the forecast for each day until the day inputted. Type Y to enable", dump = "Give all forcast info instead of relevant info. Type Y to enable.")
+                       lon="Longitude (e.g., -118.7781)", date="The day you wish to view forecast for, up to 4 days from current day. Please enter in MM/DD/YYYY format. Default is today",
+                       daily = "Shows the daily forecast. Type Y to enable", hourly = "Shows the hourly forecast. Type Y to enable.",from_current = "Shows the forecast for each day until the day inputted. Enter Y to enable",
+                       alert = "Shows available alerts for the area based on any input. Leave field empty to not trigger", dump = "Give all forcast info instead of relevant info. Enter Y to enable.")
 async def forecast(interaction: discord.Interaction,
                    city: str = None,
                    zip: str = None,
                    lat: float = None,
                    lon: float = None,
-                   alert: str = None,
-                   day: str = None,
-                   hourly: str = None,
-                   from_current: str = None,
-                   dump: str = None):
+                   date: str = Weather.get_date(),
+                   daily: str = "N",
+                   hourly: str = "N",
+                   from_current: str = "N",
+                   alert: str = "N",
+                   dump: str = "N"):
 
     # --- Validation ---
     provided = [x for x in [city, zip, (lat and lon)] if x]
@@ -135,6 +126,9 @@ async def forecast(interaction: discord.Interaction,
     alert = Weather.string_condenser(alert)
     hourly = Weather.string_condenser(hourly)
     from_current = Weather.string_condenser(from_current)
+    if Weather.days_between(date) > 5:
+        await interaction.response.send_message(f"Please select a date between {Weather.get_date()} - {Weather.get_future_date(4)}")
+        return
 
     if len(provided) == 0:
         await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.")
@@ -152,16 +146,8 @@ async def forecast(interaction: discord.Interaction,
     else:
         query = f"{lat},{lon}"
 
-
-
-    # Sends alerts if enabled
-    if alert == "Y":
-        alerts = Weather.emergency_status(query)
-        if len(alerts) >= 1:
-            for alert in alerts:
-                await interaction.followup.send(alert)
-        if len(alerts) == 0:
-            await interaction.followup.send("There are no active alerts in your area 😱😎")
+    message = Weather.forecast(query, date, daily, hourly, from_current, alert, dump)
+    interaction.response.send_message(message)
 
 
 bot.run(TOKEN,log_handler=handler,log_level=logging.DEBUG)
