@@ -8,6 +8,7 @@ import aiohttp
 import asyncio
 import json
 load_dotenv()
+import aiomysql
 
 
 API_KEY = os.getenv("API_KEY")

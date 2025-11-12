@@ -10,14 +10,16 @@ from discord.ext import commands
 import Weather_Satellite as Weather
 import asyncio
 import aiohttp
+import Database_Helpers as db
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
-
+OwnerID = os.getenv("OWNER_ID")
 
 class MyBot(commands.Bot):
     #Creating setup hook
     async def setup_hook(self):
+        await db.init_db_pool()
         for gid in (1025497829646549092, 1086077024373850243):
             await self.tree.sync(guild=discord.Object(id=gid))
         await self.tree.sync()
@@ -41,6 +43,7 @@ async def _close():
     if getattr(bot, "aiohttp_session", None) and not bot.aiohttp_session.closed:
         await bot.aiohttp_session.close()
     await _original_close()
+    await db.close_db_pool()
 bot.close = _close
 
 @bot.event
@@ -99,6 +102,21 @@ def bool_to_yn(val):
     if val is False:
         return "N"
     return val  # leaves strings like "Y"/"N" untouched
+
+#SLASH: /db_view
+
+@bot.tree.command(name="db_view", description= "Only the owner can access this")
+@app_commands.default_permissions() #Makes it hidden
+#Sends a view of the database to owner
+async def db_view(interaction: discord.Interaction):
+    if interaction.user.id != OwnerID:
+        await interaction.response.send_message("You can't use this command.", ephermal = True)
+        return
+
+    database = db.show_databases()
+    table = db.show_tables()
+    full = database + table
+    await interaction.response.send_message(full)
 
 #SLASH: /weather
 
