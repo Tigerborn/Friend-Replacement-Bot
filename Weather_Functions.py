@@ -142,4 +142,4 @@ def forecast(query, days, dump):
             print (timestamp)
 
 
-forecast(77345, 5, "N")
+#forecast(77345, 5, "N")

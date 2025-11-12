@@ -121,7 +121,7 @@ async def map(
 @app_commands.describe(city="City name (e.g., Houston)", zip="ZIP code (e.g., 77339)", lat="Latitude (e.g., 32.7781)",
                        lon="Longitude (e.g., -118.7781)", alert = "Shows available alerts for the area based on any input. Leave field empty to not trigger",
                        day="The day you wish to view forecast for, up to 5 days from current day", hourly = "Shows the hourly forecast. Type Y to enable.", from_current = "Shows the forecast for each day until the day inputted. Type Y to enable")
-async def forecast(interaction: discord.interaction,
+async def forecast(interaction: discord.Interaction,
                    city: str = None,
                    zip: str = None,
                    lat: float = None,
