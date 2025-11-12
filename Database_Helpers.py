@@ -24,6 +24,7 @@ async def init_db_pool():
         maxsize=5,                      # tune as needed
         charset="utf8mb4"
     )
+    print("✅ Database connection pool created!")
 
 async def close_db_pool():
     #Close db_pool on shutdown
