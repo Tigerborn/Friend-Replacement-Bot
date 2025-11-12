@@ -110,13 +110,13 @@ def bool_to_yn(val):
 #Sends a view of the database to owner
 async def db_view(interaction: discord.Interaction):
     if interaction.user.id != OwnerID:
-        await interaction.response.send_message("You can't use this command.", ephermal = True)
+        await interaction.response.send_message("You can't use this command.", ephemeral = True)
         return
 
     database = db.show_databases()
     table = db.show_tables()
     full = database + table
-    await interaction.response.send_message(full)
+    await interaction.response.send_message(full, ephemeral = True)
 
 #SLASH: /weather
 

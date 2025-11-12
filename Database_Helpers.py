@@ -1,5 +1,7 @@
 #Database Helpers
 import os
+from typing import Optional
+
 from dotenv import load_dotenv
 import aiomysql
 
@@ -30,7 +32,7 @@ async def close_db_pool():
         db_pool.close()
         await db_pool.wait_closed()
 
-async def show_databases():
+async def show_databases(db_pool) -> str:
     message = ""
     async with db_pool.acquire() as conn:
         async with conn.cursor() as cur:
@@ -39,13 +41,23 @@ async def show_databases():
             message += f"Databases:\n"
             for db in dbs:
                 message += f"- {db[0]}\n"
+    return message
 
-async def show_tables():
+async def show_tables(db_pool, db_name: Optional[str] = None) -> str:
     message = ""
     async with db_pool.acquire() as conn:
         async with conn.cursor() as cur:
+            if db_name:
+                await cur.execute(f"USE `{db_name}`;")
+            await cur.execute("SELECT DATABASE();")
+            (current_db,) = await cur.fetchone()
             await cur.execute("SHOW TABLES;")
             tables = await cur.fetchall()
-            message += f"Tables in current DB: \n"
-            for t in tables:
-                message += f"- {t[0]}\n"
+            message += f"Tables in current DB: {current_db or '(none selected)'} \n"
+            rows = await cur.fetchall()
+            if not rows:
+                message += f"- (no tables)\n"
+            else:
+                for (tbl,) in rows:
+                    message += f"- {tbl}\n"
+    return message
