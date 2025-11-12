@@ -112,7 +112,7 @@ async def db_view(interaction: discord.Interaction):
     if interaction.user.id != OwnerID:
         await interaction.response.send_message("You can't use this command.", ephemeral = True)
         return
-    interaction.response.defer()
+    await interaction.response.defer()
     database = await db.show_databases(db.db_pool)
     table = await db.show_tables(db.db_pool)
     full = database + table
