@@ -113,8 +113,8 @@ async def db_view(interaction: discord.Interaction):
         await interaction.response.send_message("You can't use this command.", ephemeral = True)
         return
     interaction.response.defer()
-    database = await db.show_databases()
-    table = await db.show_tables()
+    database = await db.show_databases(db.db_pool)
+    table = await db.show_tables(db.db_pool)
     full = database + table
     await interaction.followup.send(full, ephemeral = True)
 
