@@ -14,7 +14,7 @@ import Database_Helpers as db
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
-OwnerID = os.getenv("OWNER_ID", "0")
+OwnerID = int(os.getenv("OWNER_ID"))
 
 class MyBot(commands.Bot):
     #Creating setup hook
@@ -106,7 +106,7 @@ def bool_to_yn(val):
 #SLASH: /db_view
 
 @bot.tree.command(name="db_view", description= "Only the owner can access this")
-@app_commands.default_permissions() #Makes it hidden
+#@app_commands.default_permissions() #Makes it hidden
 #Sends a view of the database to owner
 async def db_view(interaction: discord.Interaction):
     if interaction.user.id != OwnerID:
