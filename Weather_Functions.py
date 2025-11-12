@@ -99,9 +99,9 @@ def weather(query, alert, dump):
         current_day = data['current']['last_updated'] + "e" #Ensures proper indexing
         # Setting Time Format
         date = Time_Format_Fix(current_day)
-        message = (f"_____________________________________________________________\n"
+        message = (f"-------------------------------------------------------------\n"
                    f"Weather Report for {date} in {data['location']['name']}, {data['location']['country']} \n"
-                   f"_____________________________________________________________\n"
+                   f"-------------------------------------------------------------\n"
                    f"Temperature: {data['current']['temp_f']}°F ({data['current']['temp_c']}°C)\n"
                    f"Feels like: {data['current']['feelslike_f']}°F ({data['current']['feelslike_c']}°C)\n"
                    f"Condition: {data['current']['condition']['text']}\n"
@@ -133,9 +133,9 @@ def emergency_status(query,days: int = 1):
     final = ""
     alerts = data.get("alerts",{}).get("alert",[])
     if not alerts:
-        message = (f"_____________________________________________________________\n"
+        message = (f"-------------------------------------------------------------\n"
                    f"**There are no active alerts in your area** 😱😎\n"
-                   f"_____________________________________________________________\n"
+                   f"-------------------------------------------------------------n"
                    )
         messages.append(message)
     else:
@@ -150,15 +150,15 @@ def emergency_status(query,days: int = 1):
             instruction = alert.get("instruction")
 
             message = (
-                f"_____________________________________________________________\n"
+                f"-------------------------------------------------------------\n"
                 f"⚠️**{event} - {severity}⚠️**\n \n"
-                f"_____________________________________________________________\n"
+                f"-------------------------------------------------------------\n"
                 f"{headline}\n \n"
                 f"Affected areas: {areas}\n \n"
                 f"From: {date_start} to: {date_end}\n \n"
                 f"{desc} \n"
                 f"{instruction}"
-                f"_____________________________________________________________\n"
+                f"-------------------------------------------------------------\n"
             )
             messages.append(message)
     for m in messages:
@@ -194,9 +194,9 @@ def forecast(query, date, daily, hourly, current_to_date, emergency, dump):
             day = days["day"]
             astro = days.get("astro",{})
             if (current_to_date == "Y" or date == Date_Format_Fix(days['date']) and daily == "Y"): #If current
-                message += (f"_____________________________________________________________\n"
+                message += (f"-------------------------------------------------------------\n"
                             f"🌡️**Forecast for {Date_Format_Fix(days['date'])}**🌡️ \n"
-                            f"_____________________________________________________________\n"
+                            f"-------------------------------------------------------------\n"
                             f"Minimum Temperature: {day['mintemp_f']}°F ({day['mintemp_c']}°C)\n"
                             f"Maximum Temperature: {day['maxtemp_f']}°F ({day['maxtemp_c']}°C)\n"
                             f"Average Tempearture: {day['avgtemp_f']}°F ({day['avgtemp_c']}°C)\n"
@@ -227,7 +227,8 @@ def forecast(query, date, daily, hourly, current_to_date, emergency, dump):
                 for hour in days.get ("hour", []):
                     timestamp = f"{Time_Format_Fix(hour['time'])} \n"
                     message += timestamp
-            message += f"_____________________________________________________________\n"
+            message += f"-------------------------------------------------------------\n"
+
             i += 1
         if emergency == "Y":
             message += emergency_status(query,d)

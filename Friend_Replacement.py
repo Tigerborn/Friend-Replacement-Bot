@@ -40,7 +40,7 @@ async def on_member_join(member: discord.Member):
 
 @bot.tree.command(name = "weather", description = "Dump relevant current weather info for desired location. Can give alerts if prompted")
 @app_commands.describe(city = "City name (e.g., Houston)", zip = "ZIP code (e.g., 77339)", lat = "Latitude (e.g., 32.7781)",
-                       lon = "Longitude (e.g., -118.7781)", alert = "Shows available alerts. Enter Y to enable", dump = "Give all weather info instead of relevant info. Enter Y to enable.")
+                       lon = "Longitude (e.g., -118.7781)", alert = "Shows available alerts. Enter Y or y to enable", dump = "Give all weather info instead of relevant info. Enter Y or y to enable.")
 async def weather(
         interaction: discord.Interaction,
         city: str = None,
@@ -54,7 +54,9 @@ async def weather(
         # --- Validation ---
         provided = [x for x in [city, zip, (lat and lon)] if x]
         dump = Weather.string_condenser(dump)
+        dump = dump.upper()
         alert = Weather.string_condenser(alert)
+        alert = alert.upper()
 
         if len(provided) == 0:
             await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.")
@@ -107,15 +109,15 @@ async def map(
 @bot.tree.command(name="forecast", description = "The hourly forecast for the desired day")
 @app_commands.describe(city="City name (e.g., Houston)", zip="ZIP code (e.g., 77339)", lat="Latitude (e.g., 32.7781)",
                        lon="Longitude (e.g., -118.7781)", date="The day you wish to view forecast for, up to 4 days from current day. Please enter in MM/DD/YYYY format. Default is today",
-                       daily = "Shows the daily forecast. Type Y to enable", hourly = "Shows the hourly forecast. Type Y to enable.",from_current = "Shows the forecast for each day until the day inputted. Enter Y to enable",
-                       alert = "Shows available alerts for the area based on any input. Leave field empty to not trigger", dump = "Give all forcast info instead of relevant info. Enter Y to enable.")
+                       daily = "Shows the daily forecast. On by default, type N or n to disable", hourly = "Shows the hourly forecast. Type Y or y to enable.",from_current = "Shows the forecast for each day until the day inputted. Enter Y or y to enable",
+                       alert = "Shows available alerts. Enter Y or y to enable", dump = "Give all forcast info instead of relevant info. Enter Y or y to enable.")
 async def forecast(interaction: discord.Interaction,
                    city: str = None,
                    zip: str = None,
                    lat: float = None,
                    lon: float = None,
                    date: str = Weather.get_date(),
-                   daily: str = "N",
+                   daily: str = "Y",
                    hourly: str = "N",
                    from_current: str = "N",
                    alert: str = "N",
@@ -124,9 +126,16 @@ async def forecast(interaction: discord.Interaction,
     # --- Validation ---
     provided = [x for x in [city, zip, (lat and lon)] if x]
     dump = Weather.string_condenser(dump)
+    dump = dump.upper()
     alert = Weather.string_condenser(alert)
+    alert = alert.upper()
     hourly = Weather.string_condenser(hourly)
+    hourly = hourly.upper()
     from_current = Weather.string_condenser(from_current)
+    from_current = from_current.upper()
+    daily = Weather.string_condenser(daily)
+    daily = daily.upper()
+
     if Weather.days_between(date) > 5:
         await interaction.response.send_message(f"Please select a date between {Weather.get_date()} - {Weather.get_future_date(4)}")
         return
@@ -138,6 +147,7 @@ async def forecast(interaction: discord.Interaction,
         await interaction.response.send_message(
             "Please provide only one type of location input (city, zip, or lat+lon).")
         return
+    interaction.response.defer()
 
     # --- Build query ---
     if city:
@@ -148,7 +158,7 @@ async def forecast(interaction: discord.Interaction,
         query = f"{lat},{lon}"
 
     message = Weather.forecast(query, date, daily, hourly, from_current, alert, dump)
-    await interaction.response.send_message(message)
+    await interaction.followup.send(message)
 
 
 bot.run(TOKEN,log_handler=handler,log_level=logging.DEBUG)
