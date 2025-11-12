@@ -39,7 +39,7 @@ def latlon_to_tile(lat: float, lon: float, zoom: int):
     return x, y
 
 
-def get_current_weather_data(query):
+def weather(query, dump):
     url = f"{API_URL}/current.json?key={API_KEY}&q={query}"
     response = requests.get(url)
     data = response.json()
@@ -52,48 +52,34 @@ def get_current_weather_data(query):
         # Setting Time Format
         date = Time_Format_Fix(current_day)
 
-        message = (f"Weather Report for {date} in {data['location']['name']}, {data['location']['country']}: \n"
-                   f"Temperature: {data['current']['temp_f']}°F ({data['current']['temp_c']}°C)\n"
-                   f"Feels like: {data['current']['feelslike_f']}°F ({data['current']['feelslike_c']}°C)\n"
-                   f"Humidity: {data['current']['humidity']}%\n"
-                   f"Precipitation: {data['current']['precip_in']} in ({data['current']['precip_mm']} mm)\n"
-                   f"Condition: {data['current']['condition']['text']}\n"
-                   )
+        if dump == "Y":
+            message = (f"Weather Report for {date} in {data['location']['name']}, {data['location']['country']}: \n"
+                       f"Temperature: {data['current']['temp_f']}°F ({data['current']['temp_c']}°C)\n"
+                       f"Feels like: {data['current']['feelslike_f']}°F ({data['current']['feelslike_c']}°C)\n"
+                       f"Humidity: {data['current']['humidity']}%\n"
+                       f"Precipitation: {data['current']['precip_in']} in ({data['current']['precip_mm']} mm)\n"
+                       f"Condition: {data['current']['condition']['text']}\n"
+                       f"Windchill: {data['current']['windchill_f']}°F ({data['current']['windchill_c']}°C)\n"
+                       f"Heat Index: {data['current']['heatindex_f']}°F ({data['current']['heatindex_c']}°C)\n"
+                       f"Dew point: {data['current']['dewpoint_f']}°F ({data['current']['dewpoint_c']}°C)\n"
+                       f"Pressure: {data['current']['pressure_in']} in ({data['current']['pressure_mb']} mb)\n"
+                       f"Wind Speed: {data['current']['wind_mph']} mph ({data['current']['wind_kph']} kph) {data['current']['wind_dir']}\n"
+                       f"Wind Gust: {data['current']['gust_mph']} mph ({data['current']['gust_kph']} kph)\n"
+                       f"Cloud Cover: {data['current']['cloud']}%\n"
+                       f"UV Index: {data['current']['uv']}\n"
+                       )
+        else:
+            message = (f"Weather Report for {date} in {data['location']['name']}, {data['location']['country']}: \n"
+                       f"Temperature: {data['current']['temp_f']}°F ({data['current']['temp_c']}°C)\n"
+                       f"Feels like: {data['current']['feelslike_f']}°F ({data['current']['feelslike_c']}°C)\n"
+                       f"Humidity: {data['current']['humidity']}%\n"
+                       f"Precipitation: {data['current']['precip_in']} in ({data['current']['precip_mm']} mm)\n"
+                       f"Condition: {data['current']['condition']['text']}\n"
+                       )
     return message
 
 
-def get_current_weather_data_extend(query):
-    url = f"{API_URL}/current.json?key={API_KEY}&q={query}"
-    response = requests.get(url)
-    data = response.json()
-
-    if "error" in data: #Handles the error
-        message = "Sorry! Couldn't find that location 💀"
-
-    else:
-        #Gets a more readable time format
-        current_day = data['current']['last_updated'] + "e" #Ensures proper indexing
-        date = Time_Format_Fix(current_day)
-
-        #Displayes weather information for the region
-        message = (f"Weather Report for {date} in {data['location']['name']}, {data['location']['country']}: \n"
-                   f"Temperature: {data['current']['temp_f']}°F ({data['current']['temp_c']}°C)\n"
-                   f"Feels like: {data['current']['feelslike_f']}°F ({data['current']['feelslike_c']}°C)\n"
-                   f"Humidity: {data['current']['humidity']}%\n"
-                   f"Precipitation: {data['current']['precip_in']} in ({data['current']['precip_mm']} mm)\n"
-                   f"Condition: {data['current']['condition']['text']}\n"
-                   f"Windchill: {data['current']['windchill_f']}°F ({data['current']['windchill_c']}°C)\n"
-                   f"Heat Index: {data['current']['heatindex_f']}°F ({data['current']['heatindex_c']}°C)\n"
-                   f"Dew point: {data['current']['dewpoint_f']}°F ({data['current']['dewpoint_c']}°C)\n"
-                   f"Pressure: {data['current']['pressure_in']} in ({data['current']['pressure_mb']} mb)\n"
-                   f"Wind Speed: {data['current']['wind_mph']} mph ({data['current']['wind_kph']} kph) {data['current']['wind_dir']}\n"
-                   f"Wind Gust: {data['current']['gust_mph']} mph ({data['current']['gust_kph']} kph)\n"
-                   f"Cloud Cover: {data['current']['cloud']}%\n"
-                   f"UV Index: {data['current']['uv']}\n"
-                   )
-    return message
-
-def Check_Emergency_Status(query):
+def emergency_status(query):
     url = f"{API_URL}/alerts.json?key={API_KEY}&q={query}&days=1&alerts=yes"
     response = requests.get(url)
     data = response.json()
@@ -128,7 +114,7 @@ def Check_Emergency_Status(query):
         Messages.append(message)
     return Messages
 
-def Display_Map(map_type,date,time,zoom,lat,long):
+def map_link(map_type,date,time,zoom,lat,long):
     if len(time) == 1: #Ensures if the hour is one digit it formats it as two.
         time = "0" + time
 
@@ -138,4 +124,22 @@ def Display_Map(map_type,date,time,zoom,lat,long):
     return url
 
 
-print(Display_Map("precip","20251110","8",0,0,0))
+def forecast(query, days, dump):
+    #This function will return desired forcast and dump relevent info
+    #Preparing the arrays that will be passed
+    day = []
+    hourly = []
+
+    url = f"{API_URL}/forecast.json?key={API_KEY}&q={query}&days={days}"
+    response = requests.get(url)
+    data = response.json()
+    forecast_days = data.get("forecast",{}).get("forecastday",[])
+    #print(forecast_days)
+    for day in forecast_days:
+        print(day['date'])
+        for hour in day.get ("hour", []):
+            timestamp = Time_Format_Fix(hour['time'])
+            print (timestamp)
+
+
+forecast(77345, 5, "N")

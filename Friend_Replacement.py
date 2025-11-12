@@ -38,9 +38,9 @@ async def on_member_join(member: discord.Member):
 
 #SLASH: /weather
 
-@bot.tree.command(name = "weather", description = "Get weather by city, zip, or coordinates. Will give alerts if prompted")
+@bot.tree.command(name = "weather", description = "Dump relevant current weather info for desired location. Can give alerts if prompted")
 @app_commands.describe(city = "City name (e.g., Houston)", zip = "ZIP code (e.g., 77339)", lat = "Latitude (e.g., 32.7781)",
-                       lon = "Longitude (e.g., -118.7781)", alert = "Shows available alerts for the area based on any input. Leave field empty to not trigger")
+                       lon = "Longitude (e.g., -118.7781)", alert = "Shows available alerts for the area based on any input. Leave field empty to not trigger", dump = "Gives all weather info instead of relevant info. Type Y to enable this feature.")
 async def weather(
         interaction: discord.Interaction,
         city: str = None,
@@ -48,10 +48,17 @@ async def weather(
         lat: float = None,
         lon: float = None,
         alert: str = None,
+        dump: str = None
 ):
 
         # --- Validation ---
         provided = [x for x in [city, zip, (lat and lon)] if x]
+
+        if len(dump) > 1: #Ensures that dump is always the first alphanumeric character in input.
+            for x in dump:
+                if x.isalpha():
+                    dump = x
+                    break
 
         if len(provided) == 0:
             await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.")
@@ -68,12 +75,10 @@ async def weather(
         else:
             query = f"{lat},{lon}"
 
-        result = Weather.get_current_weather_data(query)
-        await interaction.response.send_message(result)
 
         #Sends alerts if the alert field is filled
         if alert is not None:
-            alerts = Weather.Check_Emergency_Status(query)
+            alerts = Weather.emergency_status(query)
             if len(alerts) >= 1:
                 for alert in alerts:
                     await interaction.followup.send(alert)
@@ -82,57 +87,10 @@ async def weather(
 
 
 
-
-
-
-#SLASH: /weather_dump
-@bot.tree.command(name = "weather_dump", description = "Get weather dump by city, zip, or coordinates. Will give alerts if prompted")
-@app_commands.describe(city="City name (e.g., Houston)", zip="ZIP code (e.g., 77339)", lat="Latitude (e.g., 32.7781)",
-                       lon="Longitude (e.g., -118.7781)", alert = "Shows available alerts for the area based on any input. Leave field empty to not trigger")
-async def weather_dump(
-        interaction: discord.Interaction,
-        city: str = None,
-        zip: str = None,
-        lat: float = None,
-        lon: float = None,
-        alert: str = None
-):
-    # --- Validation ---
-    provided = [x for x in [city, zip, (lat and lon)] if x]
-
-    if len(provided) == 0:
-        await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.")
-        return
-    if len(provided) > 1:
-        await interaction.response.send_message(
-            "Please provide only one type of location input (city, zip, or lat+lon).")
-        return
-
-    # --- Build query ---
-    if city:
-        query = city
-    elif zip:
-        query = zip
-    else:
-        query = f"{lat},{lon}"
-
-    result = Weather.get_current_weather_data_extend(query)
-
-    await interaction.response.send_message(result)
-
-    # Sends alerts if the alert field is filled
-    if alert is not None:
-        alerts = Weather.Check_Emergency_Status(query)
-        if len(alerts) >= 1:
-            for alert in alerts:
-                await interaction.followup.send(alert)
-        if len(alerts) == 0:
-            await interaction.followup.send("There are no active alerts in your area 😱😎")
-
 #SLASH: /map
 @bot.tree.command(name="map", description = "Returns a desired map")
 @app_commands.describe(map_type = "Type of map. Options include tmp2m (Temperature at 2m), precip (Precipitation), pressure, and wind",
-                       date = "Date in format of yyyymmdd (Example: For November 1st, 2024 the input would be 20241101. Can only be 3 days or less of the current date",
+                       date = "Date in format of yyyymmdd (Example: For November 1st, 2024 the input would be 20241101. Has to be within the last 3 days. Cannot be the current date or future date. EX: If today was 11/11/2025 you could only see 11/10/2025 and earlier within constraints.",
                        hour = "UTC hour in 24 format (Example: 1 PM would be 13)",
                        zoom = "Zoom level: Each Zoom corresponds to different depths of info. 0 - Whole world, 1 - Very zoomed out, 5 - Continental scale, 8 - Regional, and 10 - City-level",
                        lat = "Latitude coordinate",
@@ -153,10 +111,55 @@ async def map(
     if map_type is None or date is None or hour is None or zoom is None or lat is None or long is None:
         await interaction.response.send_message("One or more field was left empty💀. Please fill out all fields and try again.")
         return
-    url = Weather.Display_Map(map_type, date, hour, zoom, lat, long)
+    url = Weather.map_link(map_type, date, hour, zoom, lat, long)
     await interaction.response.send_message(url)
 
 
 #SLASH: /forecast
+
+@bot.tree.command(name="forecast", description = "The hourly forecast for the desired day")
+@app_commands.describe(city="City name (e.g., Houston)", zip="ZIP code (e.g., 77339)", lat="Latitude (e.g., 32.7781)",
+                       lon="Longitude (e.g., -118.7781)", alert = "Shows available alerts for the area based on any input. Leave field empty to not trigger",
+                       day="The day you wish to view forecast for, up to 5 days from current day", hourly = "Shows the hourly forecast. Type Y to enable.", from_current = "Shows the forecast for each day until the day inputted. Type Y to enable")
+async def forecast(interaction: discord.interaction,
+                   city: str = None,
+                   zip: str = None,
+                   lat: float = None,
+                   lon: float = None,
+                   alert: str = None,
+                   day: str = None,
+                   hourly: str = None,
+                   from_current: str = None):
+
+    # --- Validation ---
+    provided = [x for x in [city, zip, (lat and lon)] if x]
+
+    if len(provided) == 0:
+        await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.")
+        return
+    if len(provided) > 1:
+        await interaction.response.send_message(
+            "Please provide only one type of location input (city, zip, or lat+lon).")
+        return
+
+    # --- Build query ---
+    if city:
+        query = city
+    elif zip:
+        query = zip
+    else:
+        query = f"{lat},{lon}"
+
+
+
+    # Sends alerts if the alert field is filled
+    if alert is not None:
+        alerts = Weather.Check_Emergency_Status(query)
+        if len(alerts) >= 1:
+            for alert in alerts:
+                await interaction.followup.send(alert)
+        if len(alerts) == 0:
+            await interaction.followup.send("There are no active alerts in your area 😱😎")
+
 
 bot.run(TOKEN,log_handler=handler,log_level=logging.DEBUG)
