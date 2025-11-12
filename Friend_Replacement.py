@@ -1,13 +1,24 @@
+#Main bot file
 import discord
+import Gamblers_Den as Gambling
 from discord import app_commands
 import os
 import logging
 from dotenv import load_dotenv
 from discord.ext import commands
-import Weather_Functions as Weather
+import Weather_Satellite as Weather
+import asyncio
+import aiohttp
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
+
+async def get_weather_client(bot):
+    # Create once; reuse later
+    if getattr(bot, "weather_client", None) is None:
+        bot.aiohttp_session = aiohttp.ClientSession()
+        bot.weather_client = Weather.WeatherClient(bot.aiohttp_session)
+    return bot.weather_client
 
 intents = discord.Intents.default()
 intents.members = True
@@ -15,15 +26,18 @@ intents.messages = True
 intents.message_content = True
 intents.reactions = True
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-bot = commands.Bot(command_prefix='/', intents=intents)
+bot = commands.Bot(command_prefix= "/", intents = intents)
+
+#Weather client
+
+
+
 @bot.event
 async def on_ready():
-    guild_id = 1025497829646549092
-    guild_id_two = 1086077024373850243
     try:
         #Testing the sync
-        guild = discord.Object(id=guild_id)
-        guild_two = discord.Object(id=guild_id_two)
+        for gid in (1025497829646549092, 1086077024373850243):
+            await bot.tree.sync(guild=discord.Object(id=gid))
         await bot.tree.sync()
         print("Logged in successfully as", bot.user.name, "🤯😎")
     except Exception as e:
@@ -35,6 +49,39 @@ async def on_member_join(member: discord.Member):
     if channel is not None:
         await channel.send(f"Hello {member.mention}!")
 
+#Shutdown
+@bot.event
+async def on_shutdown():
+    if bot.weather_client:
+        await bot.weather_client.session.close()
+
+async def send_chunked(interaction: discord.Interaction, content: str):
+    #Sends outputs greater than 2000 character in chunks
+    # Split on newlines/spaces so we don’t cut words mid-way
+    chunks = []
+    text = content
+    LIMIT = 2000
+
+    while text:
+        if len(text) <= LIMIT:
+            chunks.append(text)
+            break
+        # take a safe window
+        window = text[:1900]
+        # try to break nicely
+        cut = max(window.rfind("\n"), window.rfind(" "))
+        if cut < 1200:  # fallback if no good break
+            cut = 1900
+        chunks.append(text[:cut])
+        text = text[cut:]
+
+    if not interaction.response.is_done():
+        await interaction.response.send_message(chunks[0])
+        for c in chunks[1:]:
+            await interaction.followup.send(c)
+    else:
+        for c in chunks:
+            await interaction.followup.send(c)
 
 #SLASH: /weather
 
@@ -52,6 +99,7 @@ async def weather(
 ):
 
         # --- Validation ---
+        client = await get_weather_client(bot)
         provided = [x for x in [city, zip, (lat and lon)] if x]
         dump = Weather.string_condenser(dump)
         dump = dump.upper()
@@ -72,8 +120,16 @@ async def weather(
             query = zip
         else:
             query = f"{lat},{lon}"
-        message = Weather.weather(query, alert, dump)
-        await interaction.response.send_message(message)
+
+        await interaction.response.defer()
+
+        try:
+            msg = await client.weather(query, alert, dump)
+            await interaction.followup.send(msg)
+        except asyncio.TimeoutError:
+            await interaction.followup.send("Weather service timed out. Please try again.")
+        except Exception as e:
+            await interaction.followup.send(f"Error: `{e}`")
 
 
 #SLASH: /map
@@ -109,7 +165,9 @@ async def map(
 @bot.tree.command(name="forecast", description = "The hourly forecast for the desired day")
 @app_commands.describe(city="City name (e.g., Houston)", zip="ZIP code (e.g., 77339)", lat="Latitude (e.g., 32.7781)",
                        lon="Longitude (e.g., -118.7781)", date="The day you wish to view forecast for, up to 4 days from current day. Please enter in MM/DD/YYYY format. Default is today",
-                       daily = "Shows the daily forecast. On by default, type N or n to disable", hourly = "Shows the hourly forecast. Type Y or y to enable.",from_current = "Shows the forecast for each day until the day inputted. Enter Y or y to enable",
+                       daily = "Shows the daily forecast. On by default, type N or n to disable",
+                       hourly = "Shows the hourly forecast. Type Y or y to enable. Warning: Because of large amount of content that hourly spits out, It will automatically disable daily, alert, and from_current features",
+                       from_current = "Shows the forecast for each day until the day inputted. Enter Y or y to enable",
                        alert = "Shows available alerts. Enter Y or y to enable", dump = "Give all forcast info instead of relevant info. Enter Y or y to enable.")
 async def forecast(interaction: discord.Interaction,
                    city: str = None,
@@ -124,6 +182,7 @@ async def forecast(interaction: discord.Interaction,
                    dump: str = "N"):
 
     # --- Validation ---
+    client = await get_weather_client(bot)
     provided = [x for x in [city, zip, (lat and lon)] if x]
     dump = Weather.string_condenser(dump)
     dump = dump.upper()
@@ -135,6 +194,14 @@ async def forecast(interaction: discord.Interaction,
     from_current = from_current.upper()
     daily = Weather.string_condenser(daily)
     daily = daily.upper()
+    if hourly == "Y":
+        daily = "N"
+        alert = "N"
+        from_current = "N"
+
+    is_proper = Weather.date_check(date)
+    if not is_proper:
+        await interaction.response.send_message(f"Date was not in proper format (MM/DD/YYYY). Please ensure it is between {Weather.get_date()} - {Weather.get_future_date(4)}")
 
     if Weather.days_between(date) > 5:
         await interaction.response.send_message(f"Please select a date between {Weather.get_date()} - {Weather.get_future_date(4)}")
@@ -147,7 +214,7 @@ async def forecast(interaction: discord.Interaction,
         await interaction.response.send_message(
             "Please provide only one type of location input (city, zip, or lat+lon).")
         return
-    interaction.response.defer()
+    await interaction.response.defer()
 
     # --- Build query ---
     if city:
@@ -157,8 +224,21 @@ async def forecast(interaction: discord.Interaction,
     else:
         query = f"{lat},{lon}"
 
-    message = Weather.forecast(query, date, daily, hourly, from_current, alert, dump)
-    await interaction.followup.send(message)
+    try:
+        msg = await client.forecast(
+            query=query,
+            date=date,
+            daily=daily,
+            hourly=hourly,
+            current_to_date=from_current,
+            emergency=alert,
+            dump=dump,
+        )
+        await send_chunked(interaction, msg)
+    except asyncio.TimeoutError:
+        await interaction.followup.send("Forecast request timed out.")
+    except Exception as e:
+        await interaction.followup.send(f"Error: `{e}`")
 
 
 bot.run(TOKEN,log_handler=handler,log_level=logging.DEBUG)
