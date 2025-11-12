@@ -70,7 +70,8 @@ async def weather(
             query = zip
         else:
             query = f"{lat},{lon}"
-        Weather.weather(query, alert, dump)
+        message = Weather.weather(query, alert, dump)
+        await interaction.response.send_message(message)
 
 
 #SLASH: /map
@@ -147,7 +148,7 @@ async def forecast(interaction: discord.Interaction,
         query = f"{lat},{lon}"
 
     message = Weather.forecast(query, date, daily, hourly, from_current, alert, dump)
-    interaction.response.send_message(message)
+    await interaction.response.send_message(message)
 
 
 bot.run(TOKEN,log_handler=handler,log_level=logging.DEBUG)
