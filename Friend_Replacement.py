@@ -103,6 +103,13 @@ def bool_to_yn(val):
         return "N"
     return val  # leaves strings like "Y"/"N" untouched
 
+#SLASH: /claim_daily
+@bot.tree.command(name = "claim_daily", description = "Claim your daily credits!")
+async def claim_daily(interaction: discord.Interaction):
+    await interaction.response.defer()
+    message = await db.daily_claim(db.db_pool,interaction.user.id, interaction.user.name)
+    await interaction.followup.send(message, ephemeral = True)
+
 #SLASH: /db_view
 
 @bot.tree.command(name="db_view", description= "Only the owner can access this")
@@ -140,14 +147,14 @@ async def weather(
 
         count, err = _location_params(city, zip, lat, lon)
         if err:
-            await interaction.response.send_message(err)
+            await interaction.response.send_message(err, ephemeral = True)
             return
         if count == 0:
-            await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.")
+            await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.", ephemeral = True)
             return
         if count > 1:
             await interaction.response.send_message(
-                "Please provide only one type of location input (city, zip, or lat+lon).")
+                "Please provide only one type of location input (city, zip, or lat+lon).", ephemeral = True)
             return
 
         # --- Build query ---
@@ -164,9 +171,9 @@ async def weather(
             msg = await client.weather(query, alert, dump)
             await interaction.followup.send(msg)
         except asyncio.TimeoutError:
-            await interaction.followup.send("Weather service timed out. Please try again.")
+            await interaction.followup.send("Weather service timed out. Please try again.", ephemeral = True)
         except Exception as e:
-            await interaction.followup.send(f"Error: `{e}`")
+            await interaction.followup.send(f"Error: `{e}`", ephemeral = True)
 
 
 #SLASH: /map
@@ -189,14 +196,14 @@ async def map(
 ):
     VALID_MAPS = {"tmp2m", "precip", "pressure", "wind"}
     if map_type not in VALID_MAPS:
-        await interaction.response.send_message(f"Map type must be one of: {', '.join(sorted(VALID_MAPS))}")
+        await interaction.response.send_message(f"Map type must be one of: {', '.join(sorted(VALID_MAPS))}", ephemeral = True)
         return
     try:
         hour_int = int(hour)
         if not (0 <= hour_int <= 23):
             raise ValueError
     except:
-        await interaction.response.send_message("`hour` must be an integer from 0–23 (UTC).")
+        await interaction.response.send_message("`hour` must be an integer from 0–23 (UTC).", ephemeral = True)
         return
     url = Weather.map_link(map_type, date, hour, zoom, lat, lon)
     await interaction.response.send_message(url)
@@ -239,26 +246,26 @@ async def forecast(interaction: discord.Interaction,
     is_proper = Weather.date_check(date)
     if not is_proper:
         await interaction.response.send_message(
-            f"Date was not in proper format (MM/DD/YYYY). Please ensure it is between {Weather.get_date()} - {Weather.get_future_date(4)}"
+            f"Date was not in proper format (MM/DD/YYYY). Please ensure it is between {Weather.get_date()} - {Weather.get_future_date(4)}", ephemeral = True
         )
         return
 
     if Weather.days_between(date) > 4:
         await interaction.response.send_message(
-            f"Please select a date between {Weather.get_date()} - {Weather.get_future_date(4)}"
+            f"Please select a date between {Weather.get_date()} - {Weather.get_future_date(4)}", ephemeral = True
         )
         return
 
     count, err = _location_params(city, zip, lat, lon)
     if err:
-        await interaction.response.send_message(err)
+        await interaction.response.send_message(err, ephemeral = True)
         return
     if count == 0:
-        await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.")
+        await interaction.response.send_message("Please provide **city**, **zip**, or **latitude + longitude**.", ephemeral = True)
         return
     if count > 1:
         await interaction.response.send_message(
-            "Please provide only one type of location input (city, zip, or lat+lon).")
+            "Please provide only one type of location input (city, zip, or lat+lon).", ephemeral = True)
         return
     await interaction.response.defer()
 
@@ -282,9 +289,9 @@ async def forecast(interaction: discord.Interaction,
         )
         await send_chunked(interaction, msg)
     except asyncio.TimeoutError:
-        await interaction.followup.send("Forecast request timed out.")
+        await interaction.followup.send("Forecast request timed out.", ephemeral = True)
     except Exception as e:
-        await interaction.followup.send(f"Error: `{e}`")
+        await interaction.followup.send(f"Error: `{e}`", ephemeral = True)
 
 
 bot.run(TOKEN,log_handler=handler,log_level=logging.DEBUG)
