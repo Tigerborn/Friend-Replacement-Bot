@@ -11,6 +11,7 @@ import Weather_Satellite as Weather
 import asyncio
 import aiohttp
 import Database_Helpers as db
+import Game_Tracking as gt
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")

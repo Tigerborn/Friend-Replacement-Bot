@@ -11,8 +11,8 @@ load_dotenv()
 import aiomysql
 
 
-API_KEY = os.getenv("API_KEY")
-API_URL = os.getenv("API_URL")
+API_KEY = os.getenv("WEATHER_API_KEY")
+API_URL = os.getenv("WEATHER_API_URL")
 def Time_Format_Fix(time):
     #Gets a more readable Time format
     date = f"{Date_Format_Fix(time)} at {Time_Format(time)}"
@@ -300,24 +300,6 @@ class WeatherClient:
                 message += await self.emergency_status(query,d)
         return message
 
-async def main():
-    async with aiohttp.ClientSession() as session:
-        client = WeatherClient(session)
 
-        # Test weather
-        weather = await client.weather("77345", "Y", "Y")
-        print(weather)
-
-        # Test forecast
-        forecast = await client.forecast(
-            query="77345",
-            date="11/15/2025",
-            daily = "N",
-            hourly="Y",
-            current_to_date="Y",
-            emergency="Y",
-            dump="Y"
-        )
-        print(forecast)
 
 

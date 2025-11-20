@@ -146,6 +146,24 @@ async def daily_claim(db_pool, uid:int, username:str) -> str:
                 raise
 
 
+async def fortnite_daily_shop_cache(db_pool, date):
+    async with db_pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            try:
+                await cur.execute("START TRANSACTION")
+                #0) Ensure Row exist
+
+
+
+
+            except Exception:
+                await conn.rollback()
+                raise
+
+
+
+
+
 
 
 
