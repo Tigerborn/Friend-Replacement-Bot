@@ -30,7 +30,7 @@ class MyBot(commands.Bot):
         self.weather_client = Weather.WeatherClient(self.aiohttp_session)
         self.fortnite_client = gt.Fortnite_Client(self.aiohttp_session)
 
-        asyncio.create_tast(gt.shop_refresh(datetime.time(0,0), self.aiohttp_session))
+        asyncio.create_task(gt.shop_refresh(datetime.time(0,0), self.aiohttp_session))
 
 
 intents = discord.Intents.default()
