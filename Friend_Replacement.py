@@ -12,6 +12,7 @@ import asyncio
 import aiohttp
 import Database_Helpers as db
 import Game_Tracking as gt
+import datetime
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
@@ -27,6 +28,9 @@ class MyBot(commands.Bot):
         # Optionally warm up shared clients here:
         self.aiohttp_session = aiohttp.ClientSession()
         self.weather_client = Weather.WeatherClient(self.aiohttp_session)
+        self.fortnite_client = gt.Fortnite_Client(self.aiohttp_session)
+
+        asyncio.create_tast(gt.shop_refresh(datetime.time(0,0), self.aiohttp_session))
 
 
 intents = discord.Intents.default()
@@ -251,7 +255,7 @@ async def forecast(interaction: discord.Interaction,
         )
         return
 
-    if Weather.days_between(date) > 4:
+    if Weather.days_between(date) > 5:
         await interaction.response.send_message(
             f"Please select a date between {Weather.get_date()} - {Weather.get_future_date(4)}", ephemeral = True
         )

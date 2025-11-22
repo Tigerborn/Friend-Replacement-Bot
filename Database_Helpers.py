@@ -4,6 +4,7 @@ from typing import Optional
 from dotenv import load_dotenv
 import aiomysql
 from datetime import datetime, timedelta
+import json
 
 load_dotenv()
 
@@ -146,19 +147,49 @@ async def daily_claim(db_pool, uid:int, username:str) -> str:
                 raise
 
 
-async def fortnite_daily_shop_cache(db_pool, date):
+async def fortnite_daily_shop_cache(db_pool, data):
+    payload = json.dumps(data)
     async with db_pool.acquire() as conn:
         async with conn.cursor(aiomysql.DictCursor) as cur:
             try:
                 await cur.execute("START TRANSACTION")
-                #0) Ensure Row exist
+                #0) Creates new row of current date with data
+                await cur.execute(
+                    """INSERT INTO Fortnite_Shop(date, shop_data)
+                    VALUES(CURRENT_DATE, %s)
+                    ON DUPLICATE KEY UPDATE
+                        shop_data = VALUES(shop_data)
+                    """,(payload,)
+                )
 
-
-
-
+                await conn.commit()
             except Exception:
                 await conn.rollback()
                 raise
+
+
+async def fortnite_daily_shop_pull(db_pool):
+    #Pulls data from database cache instead of API call
+    async with db_pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            try:
+                await cur.execute("START TRANSACTION")
+                #Pulls data
+                await cur.execute("SELECT shop_data FROM Fortnite_Shop WHERE date = CURRENT_DATE")
+                data = await cur.fetchone()
+                if data is None:
+                    return None
+
+                shop_data = data["shop_data"]
+                if isinstance(shop_data, str):
+                    shop_data = json.loads(shop_data)
+
+                return shop_data
+            except Exception:
+                await conn.rollback()
+                raise
+
+
 
 
 
