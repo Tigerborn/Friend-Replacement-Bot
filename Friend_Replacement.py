@@ -298,5 +298,12 @@ async def forecast(interaction: discord.Interaction,
     except Exception as e:
         await interaction.followup.send(f"Error: `{e}`", ephemeral = True)
 
+@bot.tree.command(name = "show_fortnite_shop", description = "Shows fortnite shop inventory")
+async def show_fortnite_shop(interaction: discord.Interaction):
+    client = bot.fortnite_client
+    data = await client.daily_shop()
+    await send_chunked(interaction, data)
+
+
 
 bot.run(TOKEN,log_handler=handler,log_level=logging.DEBUG)
