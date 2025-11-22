@@ -255,7 +255,7 @@ async def forecast(interaction: discord.Interaction,
         )
         return
 
-    if Weather.days_between(date) > 5:
+    if Weather.days_between(date) > 4:
         await interaction.response.send_message(
             f"Please select a date between {Weather.get_date()} - {Weather.get_future_date(4)}", ephemeral = True
         )
