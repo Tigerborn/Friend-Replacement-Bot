@@ -212,7 +212,7 @@ class WeatherClient:
         messages = []
         d = days_between(date)
         i = 0
-        data = await self._get(f"{API_URL}/forecast.json?key={API_KEY}&q={query}&days={d}")
+        data = await self._get(f"{API_URL}/forecast.json?key={API_KEY}&q={query}&days={d + 1}")
         forecast_days = data.get("forecast",{}).get("forecastday",[])
         if "error" in data: #Handles the error
             final_message = "Sorry Couldn't find that location 💀"
