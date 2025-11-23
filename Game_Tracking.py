@@ -49,8 +49,19 @@ class Fortnite_Client:
         if data is None:
             #If it errors out, the data will be sourced from api call
             data = await self._get(f"{API_URL}v2/shop")
+            await db.fortnite_daily_shop_pull(db.db_pool, data)
 
 
+        print(data)
         return data
 
+
+async def main():
+    async with aiohttp.ClientSession() as session:
+        client = Fortnite_Client(session)
+
+        # Test forecast
+        forecast = await client.daily_shop()
+
+        print(forecast)
 
