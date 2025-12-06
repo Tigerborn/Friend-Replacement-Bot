@@ -243,7 +243,7 @@ async def forecast(interaction: discord.Interaction,
     from_current = bool_to_yn(from_current)
     daily = bool_to_yn(daily)
 
-    if hourly == "Y":
+    if hourly == "WY":
         daily = "N"
         alert = "N"
         from_current = "N"
