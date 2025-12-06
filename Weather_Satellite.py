@@ -60,6 +60,8 @@ def get_future_date(days: int):
     #Gets the date of number of days from current date
     date = get_date()
     future_day = f"{(int(date[3:5]) + days)}"
+    if (int(future_day) //10) == 0:
+        future_day = f"0{future_day}"
     date = date[0:3] + future_day + date[5:]
     return date
 
@@ -299,6 +301,9 @@ class WeatherClient:
             if emergency == "Y":
                 message += await self.emergency_status(query,d)
         return message
+
+
+    print(get_date(), get_future_date(4))
 
 
 
