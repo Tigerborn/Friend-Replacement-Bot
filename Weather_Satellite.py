@@ -254,7 +254,7 @@ class WeatherClient:
                                     f"Moon Illumination: {astro['moon_illumination']}%\n"
                                     )
 
-                if hourly == "Y": #If hourly forecast is enabled
+                if (hourly == "Y") and (date == Date_Format_Fix(days['date'])): #If hourly forecast is enabled
                     message += (f"-------------------------------------------------------------\n"
                                 f"🌎**{data['location']['name']}, {data['location']['country']}**🌏\n"
                                 f"🌡️**Hourly Forecast for {Date_Format_Fix(days['date'])}**🌡️ \n"
