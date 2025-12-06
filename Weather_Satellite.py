@@ -303,8 +303,6 @@ class WeatherClient:
         return message
 
 
-    print(get_date(), get_future_date(4))
-
 
 
 
