@@ -293,9 +293,9 @@ class WeatherClient:
                                         f"Diffuse Horizontal Irradiation: {h['diff_rad']} W/m^2\n"
                                         f"Direct Normal Irradiance: {h['dni']} W/m^2\n"
                                         f"Global Tilted Irradiance: {h['gti']} W/m^2\n"
-                                        f"-------------------------------------------------------------\n"
                                         )
-                message += f"-------------------------------------------------------------\n"
+                if current_to_date == "Y" or date == Date_Format_Fix(days['date']):
+                    message += f"-------------------------------------------------------------\n"
 
                 i += 1
             if emergency == "Y":
