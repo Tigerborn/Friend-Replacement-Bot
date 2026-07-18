@@ -18,7 +18,6 @@ OwnerID = int(os.getenv("OWNER_ID"))
 class MyBot(commands.Bot):
     #Creating setup hook
     async def setup_hook(self):
-        await db.init_db_pool()
         for gid in (1025497829646549092, 1086077024373850243):
             await self.tree.sync(guild=discord.Object(id=gid))
         await self.tree.sync()
