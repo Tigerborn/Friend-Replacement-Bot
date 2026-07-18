@@ -27,8 +27,6 @@ class MyBot(commands.Bot):
         self.weather_client = Weather.WeatherClient(self.aiohttp_session)
         self.fortnite_client = gt.Fortnite_Client(self.aiohttp_session)
 
-        asyncio.create_task(gt.shop_refresh(datetime.time(0,0), self.aiohttp_session))
-
 
 intents = discord.Intents.default()
 intents.members = True
@@ -45,7 +43,6 @@ async def _close():
     if getattr(bot, "aiohttp_session", None) and not bot.aiohttp_session.closed:
         await bot.aiohttp_session.close()
     await _original_close()
-    await db.close_db_pool()
 bot.close = _close
 
 @bot.event
