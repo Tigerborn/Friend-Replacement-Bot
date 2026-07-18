@@ -108,28 +108,6 @@ def bool_to_yn(val):
         return "N"
     return val  # leaves strings like "Y"/"N" untouched
 
-#SLASH: /claim_daily
-@bot.tree.command(name = "claim_daily", description = "Claim your daily credits!")
-async def claim_daily(interaction: discord.Interaction):
-    await interaction.response.defer()
-    message = await db.daily_claim(db.db_pool,interaction.user.id, interaction.user.name)
-    await interaction.followup.send(message, ephemeral = True)
-
-#SLASH: /db_view
-
-@bot.tree.command(name="db_view", description= "Only the owner can access this")
-@app_commands.default_permissions() #Makes it hidden
-#Sends a view of the database to owner
-async def db_view(interaction: discord.Interaction):
-    if interaction.user.id != OwnerID:
-        await interaction.response.send_message("You can't use this command.", ephemeral = True)
-        return
-    await interaction.response.defer()
-    database = await db.show_databases(db.db_pool)
-    table = await db.show_tables(db.db_pool)
-    full = database + table
-    await interaction.followup.send(full, ephemeral = True)
-
 #SLASH: /weather
 
 @bot.tree.command(name = "weather", description = "Dump relevant current weather info for desired location. Can give alerts if prompted")
@@ -298,11 +276,6 @@ async def forecast(interaction: discord.Interaction,
     except Exception as e:
         await interaction.followup.send(f"Error: `{e}`", ephemeral = True)
 
-@bot.tree.command(name = "show_fortnite_shop", description = "Shows fortnite shop inventory")
-async def show_fortnite_shop(interaction: discord.Interaction):
-    client = bot.fortnite_client
-    data = await client.daily_shop()
-    await send_chunked(interaction, data)
 
 
 
