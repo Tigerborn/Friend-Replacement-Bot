@@ -1,7 +1,6 @@
 #Main bot file
 import discord
 from typing import Literal
-import Gamblers_Den as Gambling
 from discord import app_commands
 import os
 import logging
@@ -10,8 +9,6 @@ from discord.ext import commands
 import Weather_Satellite as Weather
 import asyncio
 import aiohttp
-import Database_Helpers as db
-import Game_Tracking as gt
 import datetime
 
 load_dotenv()
