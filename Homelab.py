@@ -33,10 +33,10 @@ def start(container):
 #Runs the restart script on homelab
 def restart(container):
     print("Restarting terraria...")
-    result = subprocess.run("/homelab/scripts/restart.sh", capture_output=True, text=True,timeout=60)
+    result = subprocess.run(["/homelab/scripts/restart.sh", container], capture_output=True, text=True,timeout=60)
     if result.returncode == 0:
         return f"Successfully restarted {container}."
     else:
         start(container)
-        return (f"restart failed.\n{result.stderr}" + "\n Manually starting back up!")
+        return (f"Restart failed.\n{result.stderr}" + "\n Manually starting back up!")
 
