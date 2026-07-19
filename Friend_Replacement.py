@@ -177,7 +177,7 @@ async def restart_terraria(interaction: discord.Interaction, container: str):
     # Validate permissions.
     if container not in allowed_containers:
         await interaction.response.send_message(
-            "You are not restart this container.",
+            "You are not authorized to restart this container.",
             ephemeral=True
         )
         return
