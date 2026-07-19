@@ -212,6 +212,30 @@ class LinkScannerClient:
         report_data["safe_browsing"]["threats"] = threats
 
     # Regular helper functions
+
+    def get_latest_report(self, domain):
+
+        directory = f"./link_reports/{domain}"
+
+        # No reports exist.
+        if not os.path.exists(directory):
+            return None
+
+        reports = sorted(os.listdir(directory))
+
+        # Directory exists but is empty.
+        if not reports:
+            return None
+
+        # Grab the newest report.
+        latest_report = reports[-1]
+
+        return os.path.join(
+            directory,
+            latest_report
+        )
+
+
     # Turns the URL given into a universal URL. http:// or https://
 
     def get_domain_and_ip(self, report_data: dict):

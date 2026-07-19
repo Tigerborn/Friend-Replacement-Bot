@@ -39,6 +39,7 @@ class MyBot(commands.Bot):
         # Optionally warm up shared clients here:
         self.aiohttp_session = aiohttp.ClientSession()
         self.weather_client = Weather.WeatherClient(self.aiohttp_session)
+        self.link_scanner = ls.LinkScannerClient(self.aiohttp_session)
 
 
 intents = discord.Intents.default()
@@ -207,6 +208,91 @@ async def start(interaction: discord.Interaction, container: str):
     await interaction.response.defer()
     result = Homelab.start(container)
     await interaction.followup.send(result)
+
+
+
+
+
+
+# *** Link Scanner Commands ***
+
+# SLASH: /scan
+@bot.tree.command(
+    name="scan",
+    description="Scans a URL for potential threats."
+)
+@app_commands.describe(
+    link="URL or link you want scanned."
+)
+async def scan(
+        interaction: discord.Interaction,
+        link: str
+):
+
+    client = bot.link_scanner
+
+    await interaction.response.defer()
+
+    # Run the link scan.
+    report_data = await client.scan_link(
+        link,
+        interaction.user
+    )
+
+    # Risk score emojis.
+    risk_icons = {
+        "SAFE": "🟢",
+        "LOW": "🟡",
+        "MEDIUM": "🟠",
+        "HIGH": "🔴",
+        "CRITICAL": "☠️",
+        "INVALID URL": "❌"
+    }
+
+    risk_icon = risk_icons.get(
+        report_data["risk_score"],
+        "❓"
+    )
+
+    # Grab the most recently generated report.
+    filepath = client.get_latest_report(
+        report_data["domain"]
+    )
+
+    # Something went wrong saving the report.
+    if filepath is None:
+
+        await interaction.followup.send(
+            "The link was scanned successfully, but the report file could not be located."
+        )
+
+        return
+
+    # Send the scan results and attach the full report.
+    await interaction.followup.send(
+        f"""
+## Link Scan Completed!
+
+**Original URL**
+> {report_data["original_url"]}
+
+**Final URL**
+> {report_data["final_url"]}
+
+**Domain**
+> {report_data["domain"]}
+
+**Risk Score**
+> {risk_icon} {report_data["risk_score"]}
+
+**Risk Reason**
+> {report_data["risk_reason"]}
+
+The full report has been attached below.
+""",
+        file=discord.File(filepath)
+    )
+
 
 
 #SLASH: /weather
