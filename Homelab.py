@@ -21,6 +21,8 @@ def backup_container(container):
 
     return f"Backup failed.\n{result.stderr}"
 
+#Runs the start script on homelab
+
 def start(container):
     result = subprocess.run(["/homelab/scripts/start.sh", container], capture_output=True, text=True)
     if result.returncode == 0:
@@ -28,9 +30,10 @@ def start(container):
     else:
         return f"Failed to start.\n{result.stderr}"
 
-def restart_terraria(container):
+#Runs the restart script on homelab
+def restart(container):
     print("Restarting terraria...")
-    result = subprocess.run("/homelab/scripts/restart_terraria.sh", capture_output=True, text=True,timeout=60)
+    result = subprocess.run("/homelab/scripts/restart.sh", capture_output=True, text=True,timeout=60)
     if result.returncode == 0:
         return f"Successfully restarted {container}."
     else:

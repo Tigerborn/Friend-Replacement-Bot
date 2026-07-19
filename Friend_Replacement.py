@@ -163,11 +163,11 @@ async def backup(interaction: discord.Interaction, container: str):
     result = Homelab.backup_container(container)
     await interaction.followup.send(result)
 
-#SLASH /restart_terraria
-@bot.tree.command(name= "restart_terraria", description = "Restarts terraria server")
-@app_commands.describe(container = "Name of terraria container restarting")
+#SLASH /restart
+@bot.tree.command(name= "restart", description = "Restarts server")
+@app_commands.describe(container = "Name of server restarting")
 @app_commands.autocomplete(container = container_autocomplete)
-async def restart_terraria(interaction: discord.Interaction, container: str):
+async def restart(interaction: discord.Interaction, container: str):
 
     # Get the user's allowed containers.
     allowed_containers = get_allowed_containers(
@@ -182,7 +182,7 @@ async def restart_terraria(interaction: discord.Interaction, container: str):
         )
         return
     await interaction.response.defer()
-    result = Homelab.restart_terraria(container)
+    result = Homelab.restart(container)
     await interaction.followup.send(result)
 
 #SLASH /start
