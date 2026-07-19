@@ -1,6 +1,7 @@
 #Weather Functions
 import os
 from dotenv import load_dotenv
+import aiohttp
 import asyncio
 import json
 load_dotenv()
