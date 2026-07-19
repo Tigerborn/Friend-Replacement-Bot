@@ -83,7 +83,7 @@ class LinkScannerClient:
         analysis_id = submission["data"]["id"]
 
         # Poll VirusTotal until the analysis is complete.
-        max_attempts = 10
+        max_attempts = 30
         attempts = 0
 
         while attempts < max_attempts:
@@ -215,7 +215,7 @@ class LinkScannerClient:
 
     def get_latest_report(self, domain):
 
-        directory = f"./link_reports/{domain}"
+        directory = f"/homelab/link_reports/{domain}"
 
         # No reports exist.
         if not os.path.exists(directory):
@@ -379,59 +379,48 @@ class LinkScannerClient:
         vt = report_data["virus_total"]
         gsb = report_data["safe_browsing"]
 
+        if gsb["safe"] is True:
+            url_status = "SAFE"
+
+        elif gsb["safe"] is False:
+            url_status = "UNSAFE"
+
+        else:
+            url_status = "UNKNOWN"
+
         report = f"""
-    =========================================================
-                    FRIEND LINK SCAN REPORT
-    =========================================================
+        =========================================================
+                        FRIEND LINK SCAN REPORT
+        =========================================================
 
-    Scan Information
-    ---------------------------------------------------------
+        Scan Information
+        ---------------------------------------------------------
 
-    Scan Date:
-    {report_data["scan_date"]}
-
-    Scanned By:
-    {report_data["scanner_name"]}
-
-    Discord ID:
-    {report_data["scanner_id"]}
+        Scan Date            : {report_data["scan_date"]}
+        Scanned By           : {report_data["scanner_name"]}
+        Discord ID           : {report_data["scanner_id"]}
 
 
-    General Information
-    ---------------------------------------------------------
+        General Information
+        ---------------------------------------------------------
 
-    Original URL:
-    {report_data["original_url"]}
-
-    Final URL:
-    {report_data["final_url"]}
-
-    Domain:
-    {report_data["domain"]}
-
-    IP Address:
-    {report_data["ip_address"]}
-
-    HTTPS Enabled:
-    {"Yes" if report_data["uses_https"] else "No"}
-
-    HTTP Status Code:
-    {report_data["status_code"]}
-
-    Meaning:
-    {self.get_status_code_description(report_data["status_code"])}
-    """
-
+        Original URL         : {report_data["original_url"]}
+        Final URL            : {report_data["final_url"]}
+        Domain               : {report_data["domain"]}
+        IP Address           : {report_data["ip_address"]}
+        HTTPS Enabled        : {"Yes" if report_data["uses_https"] else "No"}
+        HTTP Status Code     : {report_data["status_code"]}
+        Status Meaning       : {self.get_status_code_description(report_data["status_code"])}
+        """
         report += f"""
 
-    Redirect Information
-    ---------------------------------------------------------
+        Redirect Information
+        ---------------------------------------------------------
 
-    Number of Redirects:
-    {len(report_data["redirect_history"])}
+        Number of Redirects  : {len(report_data["redirect_history"])}
 
-    Redirect History:
-    """
+        Redirect History:
+        """
 
         if report_data["redirect_history"]:
 
@@ -445,25 +434,16 @@ class LinkScannerClient:
         report += f"""
 
 
+        VirusTotal Results
+        ---------------------------------------------------------
 
-    VirusTotal Results
-    ---------------------------------------------------------
+        Malicious Detections : {vt["malicious"]}
+        Suspicious Detections: {vt["suspicious"]}
+        Harmless Detections  : {vt["harmless"]}
+        Undetected           : {vt["undetected"]}
 
-    Malicious Detections:
-    {vt["malicious"]}
-
-    Suspicious Detections:
-    {vt["suspicious"]}
-
-    Harmless Detections:
-    {vt["harmless"]}
-
-    Undetected:
-    {vt["undetected"]}
-
-
-    Flagged Vendors:
-    """
+        Flagged Vendors:
+        """
 
         if vt["flagged_vendors"]:
 
@@ -477,18 +457,14 @@ class LinkScannerClient:
         report += f"""
 
 
+        Google Safe Browsing
+        ---------------------------------------------------------
 
-    Google Safe Browsing
-    ---------------------------------------------------------
+        API Status           : {"Successful" if gsb["api_success"] else "Failed"}
+        URL Status           : {url_status}
 
-    API Status:
-    {"Successful" if gsb["api_success"] else "Failed"}
-
-    URL Status:
-    {"SAFE" if gsb["safe"] else "UNSAFE"}
-
-    Threats Found:
-    """
+        Threats Found:
+        """
 
         if gsb["threats"]:
 
@@ -502,28 +478,23 @@ class LinkScannerClient:
         report += f"""
 
 
+        Risk Assessment
+        ---------------------------------------------------------
 
-    Risk Assessment
-    ---------------------------------------------------------
-
-    Risk Score:
-    {report_data["risk_score"]}
-
-    Reason:
-    {report_data["risk_reason"]}
+        Risk Score           : {report_data["risk_score"]}
+        Risk Reason          : {report_data["risk_reason"]}
 
 
-
-    Summary
-    ---------------------------------------------------------
-    """
+        Summary
+        ---------------------------------------------------------
+        """
 
         if report_data["risk_score"] == "SAFE":
 
             report += (
-                "\nThis URL appears to be safe to visit at the time of this scan. "
-                "No threats were reported by Google Safe "
-                "Browsing or VirusTotal."
+                "\nThis URL appears to be safe to visit at the time "
+                "of this scan. No threats were reported by Google "
+                "Safe Browsing or VirusTotal."
             )
 
         elif report_data["risk_score"] == "LOW":
@@ -536,43 +507,40 @@ class LinkScannerClient:
         elif report_data["risk_score"] == "MEDIUM":
 
             report += (
-                "\nThis URL was flagged by one or more "
-                "security vendors. Additional caution is "
-                "recommended."
+                "\nThis URL was flagged by one or more security "
+                "vendors. Additional caution is recommended."
             )
 
         elif report_data["risk_score"] == "HIGH":
 
             report += (
-                "\nThis URL presents a significant security "
-                "risk and should not be trusted without "
-                "further investigation."
+                "\nThis URL presents a significant security risk "
+                "and should not be trusted without further "
+                "investigation."
             )
 
         elif report_data["risk_score"] == "CRITICAL":
 
             report += (
-                "\nThis URL has been identified as malicious "
-                "or phishing by one or more security services "
-                "at the time of this scan and should be avoided."
+                "\nThis URL has been identified as malicious or "
+                "phishing by one or more security services at the "
+                "time of this scan and should be avoided."
             )
 
         else:
 
             report += (
                 "\nThis URL could not be scanned successfully. "
-                "The provided URL may be invalid or "
-                "unreachable."
+                "The provided URL may be invalid or unreachable."
             )
 
         report += """
 
 
-
-    =========================================================
-                        END OF REPORT
-    =========================================================
-    """
+        =========================================================
+                            END OF REPORT
+        =========================================================
+        """
 
         return report
 
@@ -580,7 +548,7 @@ class LinkScannerClient:
 
         domain = report_data["domain"]
 
-        directory = f"./link_reports/{domain}"
+        directory = f"/homelab/link_reports/{domain}"
 
         os.makedirs(directory, exist_ok=True)
 
@@ -600,7 +568,7 @@ class LinkScannerClient:
 
     def find_previous_reports(self, domain):
 
-        directory = f"./link_reports/{domain}"
+        directory = f"/homelab/link_reports/{domain}"
 
         if not os.path.exists(directory):
             return []
@@ -634,7 +602,7 @@ class LinkScannerClient:
             },
 
             "safe_browsing": {
-                "safe": True,
+                "safe": None,
                 "api_success": True,
                 "threats": []
             },
