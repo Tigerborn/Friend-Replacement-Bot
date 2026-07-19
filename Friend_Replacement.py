@@ -159,7 +159,6 @@ async def backup(interaction: discord.Interaction, container: str):
             ephemeral=True
         )
         return
-    await interaction.response.send_message(container)
     await interaction.response.defer()
     result = Homelab.backup_container(container)
     await interaction.followup.send(result)
