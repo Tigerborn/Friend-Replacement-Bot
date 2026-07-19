@@ -10,7 +10,7 @@ def backup_container(container):
     print("Starting backup...")
 
     result = subprocess.run(
-        ["/scripts/backup.sh", container],
+        ["/home/caleb/scripts/backup.sh", container],
         capture_output=True,
         text=True,
         timeout=60
