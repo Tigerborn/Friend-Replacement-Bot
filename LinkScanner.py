@@ -309,7 +309,7 @@ class LinkScannerClient:
         vt = report_data["virus_total"]
         gsb = report_data["safe_browsing"]
 
-        if not gsb["safe"]:
+        if gsb["safe"] is False:
 
             threats = gsb["threats"]
 
@@ -388,8 +388,7 @@ class LinkScannerClient:
         else:
             url_status = "UNKNOWN"
 
-        report = f"""
-        =========================================================
+        report = f"""=========================================================
                         FRIEND LINK SCAN REPORT
         =========================================================
 
@@ -433,9 +432,14 @@ class LinkScannerClient:
 
         report += f"""
 
-
         VirusTotal Results
         ---------------------------------------------------------
+
+        Scan Status          : {"Successful" if vt["harmless"] +
+                                                vt["malicious"] +
+                                                vt["suspicious"] +
+                                                vt["undetected"] > 0
+        else "Timed Out"}
 
         Malicious Detections : {vt["malicious"]}
         Suspicious Detections: {vt["suspicious"]}
@@ -456,11 +460,10 @@ class LinkScannerClient:
 
         report += f"""
 
-
         Google Safe Browsing
         ---------------------------------------------------------
 
-        API Status           : {"Successful" if gsb["api_success"] else "Failed"}
+        Scan Status          : {"Successful" if gsb["api_success"] else "Failed"}
         URL Status           : {url_status}
 
         Threats Found:
@@ -477,13 +480,14 @@ class LinkScannerClient:
 
         report += f"""
 
-
         Risk Assessment
         ---------------------------------------------------------
 
         Risk Score           : {report_data["risk_score"]}
         Risk Reason          : {report_data["risk_reason"]}
+        """
 
+        report += f"""
 
         Summary
         ---------------------------------------------------------
