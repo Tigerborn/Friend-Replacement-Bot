@@ -9,7 +9,7 @@ def backup_container(container):
 
     result = subprocess.run(
         [
-            "/home/caleb/homelab/scripts/backup.sh",
+            "/home/caleb/scripts/backup.sh",
             container
         ],
         capture_output=True,
