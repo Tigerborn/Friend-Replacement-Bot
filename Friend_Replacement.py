@@ -11,6 +11,7 @@ import Homelab
 import asyncio
 import aiohttp
 import datetime
+import LinkScanner as ls
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
