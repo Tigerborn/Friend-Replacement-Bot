@@ -117,7 +117,7 @@ def bool_to_yn(val):
 def get_allowed_containers(ID):
     allowed_containers = []
     if ID in auth_t:
-        allowed_containers.append("terraria")
+        allowed_containers.append("terraria-hells-gambit")
     if ID in auth_mc:
         allowed_containers.extend(["minecraft-vanilla", "minecraft-modded"])
     return allowed_containers
