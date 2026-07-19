@@ -7,6 +7,7 @@ import logging
 from dotenv import load_dotenv
 from discord.ext import commands
 import Weather_Satellite as Weather
+import Homelab
 import asyncio
 import aiohttp
 import datetime
@@ -14,6 +15,19 @@ import datetime
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 OwnerID = int(os.getenv("OWNER_ID"))
+containers = [
+    container.strip()
+    for container in os.getenv("AUTHORIZED_CONTAINERS", "").split(",")
+    ]
+
+auth_t = [
+    int(auth_t.strip())
+    for auth_t in os.getenv("TERRARIA_USERS").split(",")
+]
+auth_mc = [
+    int(auth_t.strip())
+    for auth_t in os.getenv("MC_USERS").split(",")
+]
 
 class MyBot(commands.Bot):
     #Creating setup hook
@@ -99,6 +113,57 @@ def bool_to_yn(val):
     if val is False:
         return "N"
     return val  # leaves strings like "Y"/"N" untouched
+
+def get_allowed_containers(ID):
+    allowed_containers = []
+    if ID in auth_t:
+        allowed_containers.append("terraria")
+    if ID in auth_mc:
+        allowed_containers.extend(["minecraft-vanilla", "minecraft-modded"])
+    return allowed_containers
+
+
+
+
+def container_autocomplete(interaction, current):
+
+    allowed_containers = get_allowed_containers(
+        interaction.user.id
+    )
+
+    return [
+        app_commands.Choice(
+            name=container,
+            value=container
+        )
+        for container in allowed_containers
+        if current.lower() in container.lower()
+    ]
+#SLASH: /backup
+
+@bot.tree.command(name= "backup", description = "Backs up the docker container specified")
+@app_commands.describe(container = "Name of container the user is backing up")
+@app_commands.autocomplete(container = container_autocomplete)
+
+async def backup(interaction: discord.Interaction, container: str):
+
+    # Get the user's allowed containers.
+    allowed_containers = get_allowed_containers(
+        interaction.user.id
+    )
+
+    # Validate permissions.
+    if container not in allowed_containers:
+        await interaction.response.send_message(
+            "You are not authorized to back up this container.",
+            ephemeral=True
+        )
+        return
+
+    await interaction.response.defer()
+    result = Homelab.backup_container(container)
+    await interaction.followup.send(result)
+
 
 #SLASH: /weather
 

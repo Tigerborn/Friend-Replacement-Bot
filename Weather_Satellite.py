@@ -1,10 +1,6 @@
 #Weather Functions
 import os
-import requests
 from dotenv import load_dotenv
-import math
-from datetime import datetime
-import aiohttp
 import asyncio
 import json
 load_dotenv()
