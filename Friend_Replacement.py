@@ -22,11 +22,11 @@ containers = [
 
 auth_t = [
     int(auth_t.strip())
-    for auth_t in os.getenv("TERRARIA_USERS").split(",")
+    for auth_t in os.getenv("HELLS_GAMBIT_USERS").split(",")
 ]
 auth_mc = [
-    int(auth_t.strip())
-    for auth_t in os.getenv("MC_USERS").split(",")
+    int(auth_mc.strip())
+    for auth_mc in os.getenv("MC_USERS").split(",")
 ]
 
 class MyBot(commands.Bot):
@@ -161,6 +161,50 @@ async def backup(interaction: discord.Interaction, container: str):
         return
     await interaction.response.defer()
     result = Homelab.backup_container(container)
+    await interaction.followup.send(result)
+
+#SLASH /restart_terraria
+@bot.tree.command(name= "restart_terraria", description = "Restarts terraria server")
+@app_commands.describe(container = "Name of terraria container restarting")
+@app_commands.autocomplete(container = container_autocomplete)
+async def restart_terraria(interaction: discord.Interaction, container: str):
+
+    # Get the user's allowed containers.
+    allowed_containers = get_allowed_containers(
+        interaction.user.id
+    )
+
+    # Validate permissions.
+    if container not in allowed_containers:
+        await interaction.response.send_message(
+            "You are not restart this container.",
+            ephemeral=True
+        )
+        return
+    await interaction.response.defer()
+    result = Homelab.restart_terraria(container)
+    await interaction.followup.send(result)
+
+#SLASH /start
+@bot.tree.command(name= "start", description = "starts a server")
+@app_commands.describe(container = "Name of container starting")
+@app_commands.autocomplete(container = container_autocomplete)
+async def start(interaction: discord.Interaction, container: str):
+
+    # Get the user's allowed containers.
+    allowed_containers = get_allowed_containers(
+        interaction.user.id
+    )
+
+    # Validate permissions.
+    if container not in allowed_containers:
+        await interaction.response.send_message(
+            "You are not authorized to start this container.",
+            ephemeral=True
+        )
+        return
+    await interaction.response.defer()
+    result = Homelab.start(container)
     await interaction.followup.send(result)
 
 
