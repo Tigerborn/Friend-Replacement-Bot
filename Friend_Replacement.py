@@ -125,7 +125,7 @@ def get_allowed_containers(ID):
 
 
 
-def container_autocomplete(interaction, current):
+async def container_autocomplete(interaction, current):
 
     allowed_containers = get_allowed_containers(
         interaction.user.id
