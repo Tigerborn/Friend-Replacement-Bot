@@ -119,7 +119,7 @@ def get_allowed_containers(ID):
     if ID in auth_t:
         allowed_containers.append("terraria-hells-gambit")
     if ID in auth_mc:
-        allowed_containers.extend(["minecraft-vanilla", "minecraft-modded"])
+        allowed_containers.extend(["minecraft-vanilla", "minecraft-modded", "palworld"])
     return allowed_containers
 
 
