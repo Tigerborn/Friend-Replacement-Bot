@@ -389,7 +389,7 @@ class LinkScannerClient:
             url_status = "UNKNOWN"
 
         report = f"""=========================================================
-                        FRIEND LINK SCAN REPORT
+                         FRIEND LINK SCAN REPORT
         =========================================================
 
         Scan Information
@@ -398,7 +398,9 @@ class LinkScannerClient:
         Scan Date            : {report_data["scan_date"]}
         Scanned By           : {report_data["scanner_name"]}
         Discord ID           : {report_data["scanner_id"]}
+        """
 
+        report += f"""
 
         General Information
         ---------------------------------------------------------
@@ -493,56 +495,77 @@ class LinkScannerClient:
         ---------------------------------------------------------
         """
 
+        report += """
+
+        Summary
+        ---------------------------------------------------------
+        """
+
         if report_data["risk_score"] == "SAFE":
 
             report += (
-                "\nThis URL appears to be safe to visit at the time "
-                "of this scan. No threats were reported by Google "
-                "Safe Browsing or VirusTotal."
+                "\nThis URL appears to be safe based on the completed "
+                "\nsecurity scans."
             )
+
 
         elif report_data["risk_score"] == "LOW":
 
             report += (
-                "\nThis URL has minor suspicious indicators. "
-                "Exercise caution before visiting."
+                "\nThis URL has minor suspicious indicators."
+                "\nExercise caution before visiting the website."
             )
+
 
         elif report_data["risk_score"] == "MEDIUM":
 
             report += (
-                "\nThis URL was flagged by one or more security "
-                "vendors. Additional caution is recommended."
+                "\nThis URL was flagged by one or more security vendors."
+                "\nAdditional investigation is recommended before visiting."
             )
+
 
         elif report_data["risk_score"] == "HIGH":
 
             report += (
-                "\nThis URL presents a significant security risk "
-                "and should not be trusted without further "
-                "investigation."
+                "\nThis URL presents a significant security risk."
+                "\nIt should not be trusted without further investigation."
             )
+
 
         elif report_data["risk_score"] == "CRITICAL":
 
             report += (
-                "\nThis URL has been identified as malicious or "
-                "phishing by one or more security services at the "
-                "time of this scan and should be avoided."
+                "\nThis URL has been identified as malicious or phishing."
+                "\nDo NOT visit this website."
             )
+
+
+        elif report_data["risk_score"] == "UNKNOWN":
+
+            report += (
+                "\nOne or more security services failed to complete their scan."
+                "\nThe safety of this URL could not be fully determined."
+            )
+
+
+        elif report_data["risk_score"] == "INVALID URL":
+
+            report += (
+                "\nThe URL could not be reached or was determined to be invalid."
+                "\nPlease verify the URL and try again."
+            )
+
 
         else:
 
             report += (
-                "\nThis URL could not be scanned successfully. "
-                "The provided URL may be invalid or unreachable."
+                "\nNo summary information is available for this scan."
             )
-
         report += """
 
-
         =========================================================
-                            END OF REPORT
+                              END OF REPORT
         =========================================================
         """
 
