@@ -309,6 +309,15 @@ class LinkScannerClient:
         vt = report_data["virus_total"]
         gsb = report_data["safe_browsing"]
 
+        vt_timed_out = (
+                "VirusTotal scan timed out."
+                in vt["flagged_vendors"]
+        )
+
+        #
+        # Google Safe Browsing Threats
+        #
+
         if gsb["safe"] is False:
 
             threats = gsb["threats"]
@@ -322,6 +331,9 @@ class LinkScannerClient:
                     "this URL as malware."
                 )
 
+                return
+
+
             elif "SOCIAL_ENGINEERING" in threats:
 
                 report_data["risk_score"] = "HIGH"
@@ -331,6 +343,9 @@ class LinkScannerClient:
                     "this URL as phishing or social engineering."
                 )
 
+                return
+
+
             else:
 
                 report_data["risk_score"] = "HIGH"
@@ -339,10 +354,27 @@ class LinkScannerClient:
                     "Google Safe Browsing flagged this URL."
                 )
 
+                return
+
+        #
+        # Neither security service completed successfully.
+        #
+
+        if (not gsb["api_success"]) and vt_timed_out:
+            report_data["risk_score"] = "UNKNOWN"
+
+            report_data["risk_reason"] = (
+                "Security services were unable to "
+                "complete their analysis of this URL."
+            )
+
             return
 
-        if vt["malicious"] >= 5:
+        #
+        # VirusTotal Results
+        #
 
+        if vt["malicious"] >= 5:
             report_data["risk_score"] = "HIGH"
 
             report_data["risk_reason"] = (
@@ -350,29 +382,60 @@ class LinkScannerClient:
                 "classified this URL as malicious."
             )
 
-        elif vt["malicious"] > 0:
+            return
 
+        if vt["malicious"] > 0:
             report_data["risk_score"] = "MEDIUM"
 
             report_data["risk_reason"] = (
                 "VirusTotal reported malicious detections."
             )
 
-        elif vt["suspicious"] > 0:
+            return
 
+        if vt["suspicious"] > 0:
             report_data["risk_score"] = "LOW"
 
             report_data["risk_reason"] = (
                 "VirusTotal reported suspicious detections."
             )
 
-        else:
+            return
 
-            report_data["risk_score"] = "SAFE"
+        #
+        # Partial Scan Failures
+        #
+
+        if not gsb["api_success"]:
+            report_data["risk_score"] = "LOW"
 
             report_data["risk_reason"] = (
-                "No security services reported any threats."
+                "Google Safe Browsing failed to complete "
+                "its analysis. VirusTotal reported no threats."
             )
+
+            return
+
+        if vt_timed_out:
+            report_data["risk_score"] = "LOW"
+
+            report_data["risk_reason"] = (
+                "VirusTotal failed to complete "
+                "its analysis. Google Safe Browsing "
+                "reported no threats."
+            )
+
+            return
+
+        #
+        # Everything Passed
+        #
+
+        report_data["risk_score"] = "SAFE"
+
+        report_data["risk_reason"] = (
+            "No security services reported any threats."
+        )
 
     def generate_report(self, report_data):
 
@@ -487,12 +550,6 @@ class LinkScannerClient:
 
         Risk Score           : {report_data["risk_score"]}
         Risk Reason          : {report_data["risk_reason"]}
-        """
-
-        report += f"""
-
-        Summary
-        ---------------------------------------------------------
         """
 
         report += """
